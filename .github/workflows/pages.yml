@@ -5,12 +5,8 @@
 #   2. The --public-url and --base-url values below assume this repo is served
 #      at https://chaitugsk07.github.io/soma-schema/. If the repo name changes,
 #      update both values.
-#   3. The website has a path dependency on ../../soma-ui (a sibling repo in the
-#      soma-platform monorepo). This workflow checks out soma-ui alongside
-#      soma-schema so the relative path resolves. Both must be public repos, or
-#      you must supply a PAT with access to soma-ui in the GH_PAT secret.
-#      If soma-ui is private, add `token: ${{ secrets.GH_PAT }}` to its
-#      checkout step.
+#   3. soma-ui is consumed from crates.io (v0.1+) — no sibling repo checkout
+#      needed. The vendored theme preset is at website/theme/tailwind.preset.js.
 #   4. Trunk 0.21+ auto-downloads the Tailwind CSS binary when it sees
 #      `rel="tailwind-css"` in index.html, so no separate Tailwind install step
 #      is needed here. If your Trunk version is older than 0.21, add a step to
@@ -38,20 +34,10 @@ jobs:
     name: Build website + docs
     runs-on: ubuntu-latest
     steps:
-      # Check out soma-schema into its expected relative location so that the
-      # path dependency ../../soma-ui/... resolves correctly.
       - name: Checkout soma-schema
         uses: actions/checkout@v4
         with:
           path: soma-schema
-
-      # Check out soma-ui as a sibling directory. If soma-ui is a private repo,
-      # add: token: ${{ secrets.GH_PAT }}
-      - name: Checkout soma-ui
-        uses: actions/checkout@v4
-        with:
-          repository: chaitugsk07/soma-ui
-          path: soma-ui
 
       - name: Install Rust (stable + wasm target)
         uses: dtolnay/rust-toolchain@stable

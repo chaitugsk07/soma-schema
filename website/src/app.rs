@@ -4,12 +4,13 @@ use leptos_router::{
     path,
     hooks::use_location,
 };
-use soma_ui::ThemeToggle;
+use soma_ui::{ThemeToggle, STYLES};
 use crate::pages::{landing::LandingPage, explorer::ExplorerPage};
 
 #[component]
 pub fn App() -> impl IntoView {
     view! {
+        <style>{STYLES}</style>
         <Router>
             <div class="flex flex-col min-h-screen page-atmosphere">
                 <Nav />

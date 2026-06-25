@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>soma-schema explorer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Dark control room theme */
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --surface2: #21262d;
+  --border: #30363d;
+  --text: #e6edf3;
+  --text-muted: #8b949e;
+  --accent: #6366f1;
+  --accent-dim: #312e81;
+  --emerald: #10b981;
+  --emerald-dim: #064e3b;
+  --amber: #f59e0b;
+  --amber-dim: #78350f;
+  --mono: 'JetBrains Mono', 'Fira Code', monospace;
+  --sans: 'Outfit', system-ui, sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: var(--sans); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+/* header */
+header { display: flex; align-items: center; gap: 16px; padding: 12px 20px; background: var(--surface); border-bottom: 1px solid var(--border); flex-shrink: 0; }
+header h1 { font-size: 16px; font-weight: 600; color: var(--text); letter-spacing: -0.01em; }
+header span { font-size: 12px; color: var(--text-muted); }
+/* tabs */
+.tabs { display: flex; gap: 4px; margin-left: auto; }
+.tab { padding: 6px 14px; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: var(--text-muted); cursor: pointer; font-size: 13px; font-family: var(--sans); transition: all 0.15s; }
+.tab.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.tab:hover:not(.active) { background: var(--surface2); color: var(--text); }
+/* panels */
+.panel { flex: 1; overflow: hidden; display: none; }
+.panel.active { display: flex; flex-direction: column; }
+/* ERD panel */
+#erd-panel { position: relative; }
+.erd-toolbar { display: flex; gap: 8px; padding: 10px 16px; background: var(--surface); border-bottom: 1px solid var(--border); flex-shrink: 0; align-items: center; }
+.erd-toolbar button { padding: 5px 10px; border: 1px solid var(--border); border-radius: 5px; background: var(--surface2); color: var(--text); cursor: pointer; font-size: 12px; font-family: var(--sans); }
+.erd-toolbar button:hover { background: var(--border); }
+.erd-toolbar span { font-size: 12px; color: var(--text-muted); margin-left: 8px; }
+.erd-canvas { flex: 1; overflow: hidden; cursor: grab; position: relative; }
+.erd-canvas:active { cursor: grabbing; }
+.erd-svg-wrap { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+.erd-svg-wrap svg { width: 100%; height: 100%; }
+.erd-tables { position: absolute; top: 0; left: 0; transform-origin: 0 0; }
+/* Table cards */
+.tbl-card { position: absolute; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; min-width: 220px; max-width: 280px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.4); transition: border-color 0.15s; }
+.tbl-card:hover { border-color: var(--accent); }
+.tbl-card.dimmed { opacity: 0.3; }
+.tbl-card.highlighted { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-dim); }
+.tbl-header { padding: 8px 12px; background: var(--surface2); border-bottom: 1px solid var(--border); }
+.tbl-schema { font-size: 10px; color: var(--text-muted); font-family: var(--mono); }
+.tbl-name { font-size: 13px; font-weight: 600; color: var(--text); font-family: var(--mono); }
+.tbl-col { display: flex; align-items: center; gap: 6px; padding: 4px 12px; border-bottom: 1px solid var(--border); font-size: 12px; }
+.tbl-col:last-child { border-bottom: none; }
+.col-glyph { font-size: 10px; width: 14px; text-align: center; flex-shrink: 0; }
+.col-name { flex: 1; color: var(--text); font-family: var(--mono); }
+.col-type { color: var(--text-muted); font-family: var(--mono); font-size: 11px; }
+/* FK edges */
+.fk-edge { fill: none; stroke-width: 1.5; opacity: 0.6; transition: opacity 0.15s; }
+.fk-edge.dimmed { opacity: 0.05; }
+.fk-edge.highlighted { opacity: 1; stroke-width: 2; }
+/* Migrations panel */
+#mig-panel { overflow-y: auto; padding: 24px; }
+.mig-version { margin-bottom: 28px; }
+.ver-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+.ver-badge { background: var(--accent-dim); color: var(--accent); padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; font-family: var(--mono); }
+.ver-count { font-size: 12px; color: var(--text-muted); }
+.mig-row { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; overflow: hidden; }
+.mig-summary { display: flex; align-items: center; gap: 12px; padding: 10px 14px; cursor: pointer; }
+.mig-summary:hover { background: var(--surface2); }
+.mig-order { font-size: 11px; color: var(--text-muted); font-family: var(--mono); width: 28px; }
+.mig-file { flex: 1; font-size: 13px; font-family: var(--mono); color: var(--text); }
+.mig-why { flex: 2; font-size: 12px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mig-hash { font-size: 10px; color: var(--text-muted); font-family: var(--mono); }
+.mig-chevron { color: var(--text-muted); transition: transform 0.15s; font-size: 12px; }
+.mig-row.open .mig-chevron { transform: rotate(90deg); }
+.mig-detail { display: none; border-top: 1px solid var(--border); }
+.mig-row.open .mig-detail { display: block; }
+.sql-tabs { display: flex; background: var(--surface2); border-bottom: 1px solid var(--border); }
+.sql-tab { padding: 6px 16px; font-size: 12px; cursor: pointer; color: var(--text-muted); border-bottom: 2px solid transparent; }
+.sql-tab.active { color: var(--text); border-bottom-color: var(--accent); }
+.sql-tab.up-tab.active { border-bottom-color: var(--emerald); color: var(--emerald); }
+.sql-tab.down-tab.active { border-bottom-color: var(--amber); color: var(--amber); }
+.sql-block { display: none; }
+.sql-block.active { display: block; }
+pre.sql { font-family: var(--mono); font-size: 12px; color: var(--text); background: var(--bg); padding: 16px; overflow-x: auto; white-space: pre; line-height: 1.6; }
+.setup-section { margin-top: 32px; padding-top: 20px; border-top: 1px solid var(--border); }
+.setup-section h3 { font-size: 14px; color: var(--text-muted); margin-bottom: 12px; }
+.setup-file-name { font-family: var(--mono); font-size: 12px; color: var(--accent); background: var(--surface); padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border); margin-bottom: 6px; }
+.legend { display: flex; gap: 16px; margin-bottom: 20px; font-size: 12px; color: var(--text-muted); }
+.legend-item { display: flex; align-items: center; gap: 6px; }
+.legend-dot { width: 8px; height: 8px; border-radius: 2px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>soma-schema explorer</h1>
+  <span id="db-label"></span>
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('erd')">Schema</button>
+    <button class="tab" onclick="showTab('mig')">Migrations</button>
+  </div>
+</header>
+<div id="erd-panel" class="panel active">
+  <div class="erd-toolbar">
+    <button onclick="zoom(1.2)">+</button>
+    <button onclick="zoom(0.8)">−</button>
+    <button onclick="fitView()">Fit</button>
+    <span id="zoom-label">100%</span>
+  </div>
+  <div class="erd-canvas" id="canvas">
+    <div class="erd-tables" id="tables-layer"></div>
+    <div class="erd-svg-wrap"><svg id="edges-svg"><defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#6366f1" opacity="0.7"/></marker></defs><g id="edges-g"></g></svg></div>
+  </div>
+</div>
+<div id="mig-panel" class="panel">
+  <div style="padding:20px 24px 0"><div class="legend"><div class="legend-item"><div class="legend-dot" style="background:var(--emerald)"></div>UP — apply order (top to bottom)</div><div class="legend-item"><div class="legend-dot" style="background:var(--amber)"></div>DOWN — rollback = reverse</div></div></div>
+  <div id="mig-content" style="padding:0 24px 24px"></div>
+</div>
+<script>
+const DATA = __SOMA_DATA__;
+
+// ── Tab switching ──────────────────────────────────────────
+function showTab(name) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(name + '-panel').classList.add('active');
+  event.target.classList.add('active');
+  if (name === 'erd') requestAnimationFrame(fitView);
+}
+
+// ── ERD ───────────────────────────────────────────────────
+const TABLE_COLORS = ['#6366f1','#10b981','#f59e0b','#ec4899','#8b5cf6','#14b8a6','#f97316','#06b6d4'];
+let transform = { x: 0, y: 0, scale: 1 };
+let isDragging = false, dragStart = { x: 0, y: 0 }, transformStart = { x: 0, y: 0 };
+
+const canvas = document.getElementById('canvas');
+const tablesLayer = document.getElementById('tables-layer');
+const edgesG = document.getElementById('edges-g');
+const edgesSvg = document.getElementById('edges-svg');
+
+function applyTransform() {
+  tablesLayer.style.transform = `translate(${transform.x}px,${transform.y}px) scale(${transform.scale})`;
+  document.getElementById('zoom-label').textContent = Math.round(transform.scale * 100) + '%';
+  drawEdges();
+}
+
+function zoom(factor) {
+  const cx = canvas.clientWidth / 2, cy = canvas.clientHeight / 2;
+  transform.x = cx - (cx - transform.x) * factor;
+  transform.y = cy - (cy - transform.y) * factor;
+  transform.scale *= factor;
+  applyTransform();
+}
+
+function fitView() {
+  const tables = DATA.schema.tables;
+  if (!tables.length) return;
+  const pad = 60;
+  const xs = tables.map(t => t.x), ys = tables.map(t => t.y);
+  const maxX = Math.max(...tables.map(t => t.x + 260));
+  const maxY = Math.max(...tables.map(t => t.y + 38 + t.columns.length * 30));
+  const minX = Math.min(...xs), minY = Math.min(...ys);
+  const bw = maxX - minX + pad * 2, bh = maxY - minY + pad * 2;
+  const cw = canvas.clientWidth, ch = canvas.clientHeight;
+  const s = Math.min(cw / bw, ch / bh, 1.5);
+  transform.scale = s;
+  transform.x = (cw - (maxX + minX) * s) / 2;
+  transform.y = (ch - (maxY + minY) * s) / 2;
+  applyTransform();
+}
+
+canvas.addEventListener('mousedown', e => {
+  if (e.target.closest('.tbl-card')) return;
+  isDragging = true;
+  dragStart = { x: e.clientX, y: e.clientY };
+  transformStart = { x: transform.x, y: transform.y };
+});
+window.addEventListener('mousemove', e => {
+  if (!isDragging) return;
+  transform.x = transformStart.x + (e.clientX - dragStart.x);
+  transform.y = transformStart.y + (e.clientY - dragStart.y);
+  applyTransform();
+});
+window.addEventListener('mouseup', () => { isDragging = false; });
+canvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  const factor = e.deltaY < 0 ? 1.1 : 0.9;
+  const rect = canvas.getBoundingClientRect();
+  const cx = e.clientX - rect.left, cy = e.clientY - rect.top;
+  transform.x = cx - (cx - transform.x) * factor;
+  transform.y = cy - (cy - transform.y) * factor;
+  transform.scale *= factor;
+  applyTransform();
+}, { passive: false });
+
+function buildERD() {
+  const tables = DATA.schema.tables;
+  const colorMap = {};
+  tables.forEach((t, i) => { colorMap[t.name] = TABLE_COLORS[i % TABLE_COLORS.length]; });
+
+  tables.forEach(t => {
+    const card = document.createElement('div');
+    card.className = 'tbl-card';
+    card.id = 'tbl-' + t.name;
+    card.style.left = t.x + 'px';
+    card.style.top = t.y + 'px';
+    card.style.borderTopColor = colorMap[t.name];
+    card.style.borderTopWidth = '3px';
+
+    const hdr = document.createElement('div');
+    hdr.className = 'tbl-header';
+    hdr.innerHTML = `<div class="tbl-schema">${t.schema}</div><div class="tbl-name">${t.name}</div>`;
+    card.appendChild(hdr);
+
+    t.columns.forEach(c => {
+      const row = document.createElement('div');
+      row.className = 'tbl-col';
+      const glyph = c.pk ? '🔑' : c.fk ? '🔗' : '';
+      row.innerHTML = `<span class="col-glyph">${glyph}</span><span class="col-name">${c.name}</span><span class="col-type">${c.type}</span>`;
+      card.appendChild(row);
+    });
+
+    card.addEventListener('mouseenter', () => highlightTable(t.name));
+    card.addEventListener('mouseleave', clearHighlight);
+    tablesLayer.appendChild(card);
+  });
+
+  requestAnimationFrame(fitView);
+}
+
+function drawEdges() {
+  edgesSvg.setAttribute('width', canvas.clientWidth);
+  edgesSvg.setAttribute('height', canvas.clientHeight);
+  while (edgesG.firstChild) edgesG.removeChild(edgesG.firstChild);
+
+  DATA.schema.relations.forEach((rel, i) => {
+    const fromEl = document.getElementById('tbl-' + rel.from_table);
+    const toEl = document.getElementById('tbl-' + rel.to_table);
+    if (!fromEl || !toEl) return;
+
+    const fromR = fromEl.getBoundingClientRect();
+    const toR = toEl.getBoundingClientRect();
+    const canvR = canvas.getBoundingClientRect();
+
+    const fx1 = fromR.left - canvR.left, fy1 = fromR.top - canvR.top;
+    const fx2 = fromR.right - canvR.left, fy2 = fromR.bottom - canvR.top;
+    const tx1 = toR.left - canvR.left, ty1 = toR.top - canvR.top;
+    const tx2 = toR.right - canvR.left, ty2 = toR.bottom - canvR.top;
+
+    const fmx = (fx1 + fx2) / 2, fmy = (fy1 + fy2) / 2;
+    const tmx = (tx1 + tx2) / 2, tmy = (ty1 + ty2) / 2;
+
+    let sx, sy, ex, ey;
+    if (Math.abs(fmx - tmx) > Math.abs(fmy - tmy)) {
+      sx = fmx < tmx ? fx2 : fx1; sy = fmy;
+      ex = fmx < tmx ? tx1 : tx2; ey = tmy;
+    } else {
+      sx = fmx; sy = fmy < tmy ? fy2 : fy1;
+      ex = tmx; ey = fmy < tmy ? ty1 : ty2;
+    }
+
+    const dx = Math.abs(ex - sx) * 0.4;
+    const color = TABLE_COLORS[i % TABLE_COLORS.length];
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('class', 'fk-edge');
+    path.setAttribute('data-from', rel.from_table);
+    path.setAttribute('data-to', rel.to_table);
+    path.setAttribute('d', `M${sx},${sy} C${sx+dx},${sy} ${ex-dx},${ey} ${ex},${ey}`);
+    path.setAttribute('stroke', color);
+    path.setAttribute('marker-end', 'url(#arrow)');
+    edgesG.appendChild(path);
+  });
+}
+
+function highlightTable(name) {
+  document.querySelectorAll('.tbl-card').forEach(c => c.classList.add('dimmed'));
+  document.querySelectorAll('.fk-edge').forEach(e => e.classList.add('dimmed'));
+  const related = new Set([name]);
+  DATA.schema.relations.forEach(r => {
+    if (r.from_table === name || r.to_table === name) {
+      related.add(r.from_table); related.add(r.to_table);
+    }
+  });
+  related.forEach(n => {
+    const el = document.getElementById('tbl-' + n);
+    if (el) { el.classList.remove('dimmed'); el.classList.add('highlighted'); }
+  });
+  document.querySelectorAll('.fk-edge').forEach(e => {
+    if (e.dataset.from === name || e.dataset.to === name) {
+      e.classList.remove('dimmed'); e.classList.add('highlighted');
+    }
+  });
+}
+
+function clearHighlight() {
+  document.querySelectorAll('.tbl-card').forEach(c => { c.classList.remove('dimmed','highlighted'); });
+  document.querySelectorAll('.fk-edge').forEach(e => { e.classList.remove('dimmed','highlighted'); });
+}
+
+// ── Migrations ────────────────────────────────────────────
+function buildMigrations() {
+  const cont = document.getElementById('mig-content');
+  DATA.versions.forEach(v => {
+    const sec = document.createElement('div');
+    sec.className = 'mig-version';
+    sec.innerHTML = `<div class="ver-header"><span class="ver-badge">v${v.version}</span><span class="ver-count">${v.migrations.length} migration${v.migrations.length !== 1 ? 's' : ''}</span></div>`;
+    v.migrations.forEach(m => {
+      const row = document.createElement('div');
+      row.className = 'mig-row';
+      const shortHash = m.checksum ? m.checksum.slice(0, 8) : '';
+      row.innerHTML = `
+        <div class="mig-summary" onclick="toggleMig(this)">
+          <span class="mig-order">#${m.order_index + 1}</span>
+          <span class="mig-file">${m.file}</span>
+          <span class="mig-why">${m.why || ''}</span>
+          <span class="mig-hash">${shortHash}</span>
+          <span class="mig-chevron">›</span>
+        </div>
+        <div class="mig-detail">
+          <div class="sql-tabs">
+            <div class="sql-tab up-tab active" onclick="switchSql(this,'up')">UP ↑</div>
+            <div class="sql-tab down-tab" onclick="switchSql(this,'down')">DOWN ↓</div>
+          </div>
+          <div class="sql-block active" data-sql="up"><pre class="sql">${escHtml(m.up_sql || '')}</pre></div>
+          <div class="sql-block" data-sql="down"><pre class="sql">${escHtml(m.down_sql || '(no DOWN section)')}</pre></div>
+        </div>`;
+      sec.appendChild(row);
+    });
+    cont.appendChild(sec);
+  });
+
+  if (DATA.setup_files && DATA.setup_files.length) {
+    const sf = document.createElement('div');
+    sf.className = 'setup-section';
+    sf.innerHTML = '<h3>Setup files (run before every migration batch)</h3>';
+    DATA.setup_files.forEach(f => {
+      sf.innerHTML += `<div class="setup-file-name">${f}</div>`;
+    });
+    cont.appendChild(sf);
+  }
+}
+
+function toggleMig(el) {
+  el.parentElement.classList.toggle('open');
+}
+
+function switchSql(tab, which) {
+  const detail = tab.closest('.mig-detail');
+  detail.querySelectorAll('.sql-tab').forEach(t => t.classList.remove('active'));
+  detail.querySelectorAll('.sql-block').forEach(b => b.classList.remove('active'));
+  tab.classList.add('active');
+  detail.querySelector(`[data-sql="${which}"]`).classList.add('active');
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── Init ──────────────────────────────────────────────────
+document.getElementById('db-label').textContent = DATA.generated_for || '';
+buildERD();
+buildMigrations();
+window.addEventListener('resize', () => { if (document.getElementById('erd-panel').classList.contains('active')) drawEdges(); });
+</script>
+</body>
+</html>

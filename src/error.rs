@@ -58,6 +58,9 @@ pub enum Error {
     /// as an explicit error so operators notice the tampered or deleted migration file.
     #[error("migration version {version}, file {file} is recorded as applied but is missing from the manifest and disk")]
     AppliedButMissing { version: u32, file: String },
+
+    #[error("explorer build failed: {0}")]
+    Explorer(String),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
