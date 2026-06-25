@@ -22,6 +22,9 @@ pub struct PendingMigration {
 pub struct MigrationStatus {
     pub applied: Vec<AppliedMigration>,
     pub pending: Vec<PendingMigration>,
+    /// Integrity problems detected: checksum mismatches or applied-but-missing files.
+    /// Non-empty means `up` would fail if run now.
+    pub drift_errors: Vec<String>,
 }
 
 pub struct Migrator {
@@ -208,6 +211,30 @@ impl Migrator {
 
         let applied = driver.applied().await?;
 
+        // Run the same integrity cross-reference as up()/down() so that status()
+        // is a real pre-flight check — collect errors rather than aborting.
+        let mut drift_errors: Vec<String> = Vec::new();
+        for am in &applied {
+            match migrations
+                .iter()
+                .find(|m| m.version == am.version && m.file == am.file)
+            {
+                None => {
+                    drift_errors.push(format!(
+                        "v{} {} — applied but no longer in the manifest (AppliedButMissing)",
+                        am.version, am.file
+                    ));
+                }
+                Some(m) if m.checksum != am.checksum => {
+                    drift_errors.push(format!(
+                        "v{} {} — checksum mismatch (file was modified after being applied)",
+                        am.version, am.file
+                    ));
+                }
+                Some(_) => {}
+            }
+        }
+
         let applied_keys: std::collections::HashSet<(u32, &str)> = applied
             .iter()
             .map(|a| (a.version, a.file.as_str()))
@@ -226,7 +253,11 @@ impl Migrator {
             })
             .collect();
 
-        Ok(MigrationStatus { applied, pending })
+        Ok(MigrationStatus {
+            applied,
+            pending,
+            drift_errors,
+        })
     }
 
     /// Scaffold a new migrations root directory.

@@ -64,8 +64,76 @@ pub fn LandingPage() -> impl IntoView {
                 </div>
             </section>
 
+            // ── AI-NATIVE ──────────────────────────────────────────────────
+            {
+                let agent_rules = "## Database migrations — soma-schema\n\nThis project uses soma-schema for all database migrations.\nDocs: https://chaitugsk07.github.io/soma-schema · Repo: https://github.com/chaitugsk07/soma-schema\n\nWhen asked to change the database schema, generate a soma-schema migration. Do NOT\nhand-edit the database or any already-applied migration file.\n\nHow migrations work here:\n- Plain SQL files under migrations/01_migrated/<version>/, each with an UP section,\n  a line that trims to exactly \"-- DOWN ==\", then a DOWN section.\n- Every file is listed in migrations/migration-order.yaml, which defines apply order\n  (top to bottom) and rollback order (the exact reverse).\n- The runner checksums the whole file (UP+DOWN) and applies + records each migration\n  in one transaction, under a database advisory lock.\n\nRules when generating a migration:\n1. NEVER edit a migration that was already applied — checksum drift errors the next run.\n   To change deployed schema, write a NEW migration.\n2. Add every new .sql to migration-order.yaml in the correct version block, in apply order.\n3. Write a DOWN that undoes UP in FK-safe reverse order (drop children before parents).\n4. Seeds are idempotent: UP uses ON CONFLICT DO NOTHING so re-runs are safe.\n5. One schema per service; 00_setup/ must CREATE SCHEMA IF NOT EXISTS it (idempotent only).\n6. Follow this project's existing SQL conventions (naming, types, allowed extensions).\n\nTo add a migration:\n- Create migrations/01_migrated/<version>/<YYYYMMDD>_<NN>_<name>.sql with UP + \"-- DOWN ==\" + DOWN.\n- Add it to migration-order.yaml (created/author/why).\n- Run: soma-schema --migrations migrations status   (confirm it's pending)\n- Run: soma-schema --migrations migrations up        (apply it)\n- Never touch the file again once applied.".to_string();
+                view! {
+                    <section class="page-section landing-container ss-anim-1">
+                        <span class="section-eyebrow ai-native-eyebrow">"AI-native"</span>
+                        <h2 class="section-title">"Your agent writes the migrations"</h2>
+                        <p class="ai-native-lead">
+                            "Drop these rules into your agent\u{2019}s instructions file and it generates correct migrations on its own \u{2014} proper UP/DOWN, the manifest entry, FK-safe order, and it never edits an already-applied file. Works with any agentic coding tool: Claude Code, OpenAI Codex, Cursor, Windsurf, GitHub Copilot, Google Antigravity, Aider, and more."
+                        </p>
+                        <div class="mt-6">
+                            <CodeBlock
+                                code=agent_rules
+                                filename="AGENTS.md".to_string()
+                            />
+                        </div>
+                        <div class="agent-rules-map mt-5">
+                            <ul class="agent-rules-list">
+                                <li>
+                                    <span class="agent-rules-file">"AGENTS.md"</span>
+                                    <span class="agent-rules-sep">" \u{2014} "</span>
+                                    <span class="agent-rules-desc">"cross-tool standard (OpenAI Codex, Cursor, Zed, Google Antigravity, and most agentic tools)"</span>
+                                </li>
+                                <li>
+                                    <span class="agent-rules-file">"CLAUDE.md"</span>
+                                    <span class="agent-rules-sep">" \u{2014} "</span>
+                                    <span class="agent-rules-desc">"Claude Code"</span>
+                                </li>
+                                <li>
+                                    <span class="agent-rules-file">".cursor/rules/*.mdc"</span>
+                                    <span class="agent-rules-sep">" \u{2014} "</span>
+                                    <span class="agent-rules-desc">"Cursor (legacy: .cursorrules)"</span>
+                                </li>
+                                <li>
+                                    <span class="agent-rules-file">".windsurf/rules/"</span>
+                                    <span class="agent-rules-sep">" \u{2014} "</span>
+                                    <span class="agent-rules-desc">"Windsurf (legacy: .windsurfrules)"</span>
+                                </li>
+                                <li>
+                                    <span class="agent-rules-file">".github/copilot-instructions.md"</span>
+                                    <span class="agent-rules-sep">" \u{2014} "</span>
+                                    <span class="agent-rules-desc">"GitHub Copilot"</span>
+                                </li>
+                                <li>
+                                    <span class="agent-rules-file">"CONVENTIONS.md"</span>
+                                    <span class="agent-rules-sep">" \u{2014} "</span>
+                                    <span class="agent-rules-desc">"Aider"</span>
+                                </li>
+                            </ul>
+                            <p class="agent-rules-tip">
+                                "Same rules \u{2014} just put them in the file your tool reads. Keep AGENTS.md as the source of truth and have the others reference it."
+                            </p>
+                        </div>
+                        <p class="ai-native-skill-hint mt-5">
+                            "Claude Code users also get a /soma-schema slash-command skill \u{2014} "
+                            <a
+                                href=crate::app::docs_url("use-with-ai/")
+                                class="ai-native-docs-link"
+                            >
+                                "see the docs \u{2192}"
+                            </a>
+                        </p>
+                    </section>
+                }
+            }
+
+            <div class="ss-separator landing-container"></div>
+
             // ── QUICKSTART ─────────────────────────────────────────────────
-            <section class="page-section landing-container ss-anim-1">
+            <section class="page-section landing-container ss-anim-2">
                 <span class="section-eyebrow">"Quickstart"</span>
                 <h2 class="section-title">"Up and running in minutes"</h2>
                 <div class="terminal-card mt-6" style="position: relative;" role="region" aria-label="Quickstart terminal commands">
@@ -284,77 +352,9 @@ pub fn LandingPage() -> impl IntoView {
 
             <div class="ss-separator landing-container"></div>
 
-            // ── AI-NATIVE ──────────────────────────────────────────────────
-            {
-                let agent_rules = "## Database migrations — soma-schema\n\nThis project uses soma-schema for all database migrations.\nDocs: https://chaitugsk07.github.io/soma-schema · Repo: https://github.com/chaitugsk07/soma-schema\n\nWhen asked to change the database schema, generate a soma-schema migration. Do NOT\nhand-edit the database or any already-applied migration file.\n\nHow migrations work here:\n- Plain SQL files under migrations/01_migrated/<version>/, each with an UP section,\n  a line that trims to exactly \"-- DOWN ==\", then a DOWN section.\n- Every file is listed in migrations/migration-order.yaml, which defines apply order\n  (top to bottom) and rollback order (the exact reverse).\n- The runner checksums the whole file (UP+DOWN) and applies + records each migration\n  in one transaction, under a database advisory lock.\n\nRules when generating a migration:\n1. NEVER edit a migration that was already applied — checksum drift errors the next run.\n   To change deployed schema, write a NEW migration.\n2. Add every new .sql to migration-order.yaml in the correct version block, in apply order.\n3. Write a DOWN that undoes UP in FK-safe reverse order (drop children before parents).\n4. Seeds are idempotent: UP uses ON CONFLICT DO NOTHING so re-runs are safe.\n5. One schema per service; 00_setup/ must CREATE SCHEMA IF NOT EXISTS it (idempotent only).\n6. Follow this project's existing SQL conventions (naming, types, allowed extensions).\n\nTo add a migration:\n- Create migrations/01_migrated/<version>/<YYYYMMDD>_<NN>_<name>.sql with UP + \"-- DOWN ==\" + DOWN.\n- Add it to migration-order.yaml (created/author/why).\n- Run: soma-schema --migrations migrations status   (confirm it's pending)\n- Run: soma-schema --migrations migrations up        (apply it)\n- Never touch the file again once applied.".to_string();
-                view! {
-                    <section class="page-section landing-container ss-anim-4">
-                        <span class="section-eyebrow ai-native-eyebrow">"AI-NATIVE"</span>
-                        <h2 class="section-title">"Your agent writes the migrations"</h2>
-                        <p class="ai-native-lead">
-                            "Drop these rules into your agent\u{2019}s instructions file and it generates correct migrations on its own \u{2014} proper UP/DOWN, the manifest entry, FK-safe order, and it never edits an already-applied file. Works with any agentic coding tool: Claude Code, OpenAI Codex, Cursor, Windsurf, GitHub Copilot, Google Antigravity, Aider, and more."
-                        </p>
-                        <div class="mt-6">
-                            <CodeBlock
-                                code=agent_rules
-                                filename="AGENTS.md".to_string()
-                            />
-                        </div>
-                        <div class="agent-rules-map mt-5">
-                            <ul class="agent-rules-list">
-                                <li>
-                                    <span class="agent-rules-file">"AGENTS.md"</span>
-                                    <span class="agent-rules-sep">" \u{2014} "</span>
-                                    <span class="agent-rules-desc">"cross-tool standard (OpenAI Codex, Cursor, Zed, Google Antigravity, and most agentic tools)"</span>
-                                </li>
-                                <li>
-                                    <span class="agent-rules-file">"CLAUDE.md"</span>
-                                    <span class="agent-rules-sep">" \u{2014} "</span>
-                                    <span class="agent-rules-desc">"Claude Code"</span>
-                                </li>
-                                <li>
-                                    <span class="agent-rules-file">".cursor/rules/*.mdc"</span>
-                                    <span class="agent-rules-sep">" \u{2014} "</span>
-                                    <span class="agent-rules-desc">"Cursor (legacy: .cursorrules)"</span>
-                                </li>
-                                <li>
-                                    <span class="agent-rules-file">".windsurf/rules/"</span>
-                                    <span class="agent-rules-sep">" \u{2014} "</span>
-                                    <span class="agent-rules-desc">"Windsurf (legacy: .windsurfrules)"</span>
-                                </li>
-                                <li>
-                                    <span class="agent-rules-file">".github/copilot-instructions.md"</span>
-                                    <span class="agent-rules-sep">" \u{2014} "</span>
-                                    <span class="agent-rules-desc">"GitHub Copilot"</span>
-                                </li>
-                                <li>
-                                    <span class="agent-rules-file">"CONVENTIONS.md"</span>
-                                    <span class="agent-rules-sep">" \u{2014} "</span>
-                                    <span class="agent-rules-desc">"Aider"</span>
-                                </li>
-                            </ul>
-                            <p class="agent-rules-tip">
-                                "Same rules \u{2014} just put them in the file your tool reads. Keep AGENTS.md as the source of truth and have the others reference it."
-                            </p>
-                        </div>
-                        <p class="ai-native-skill-hint mt-5">
-                            "Claude Code users also get a /soma-schema slash-command skill \u{2014} "
-                            <a
-                                href=crate::app::docs_url("use-with-ai/")
-                                class="ai-native-docs-link"
-                            >
-                                "see the docs \u{2192}"
-                            </a>
-                        </p>
-                    </section>
-                }
-            }
-
-            <div class="ss-separator landing-container"></div>
-
             // ── WHY SOMA-SCHEMA ────────────────────────────────────────────
             <section class="page-section landing-container ss-anim-5">
-                <span class="section-eyebrow">"WHY SOMA-SCHEMA"</span>
+                <span class="section-eyebrow">"Why soma-schema"</span>
                 <h2 class="section-title">"Not your old migration tool"</h2>
                 <p class="why-lead">
                     "Flyway, Liquibase, sqlx-migrate, Alembic were built for humans typing commands. soma-schema is built for a codebase where an AI agent writes most of the migrations."
@@ -393,7 +393,7 @@ pub fn LandingPage() -> impl IntoView {
                     <div class="why-card">
                         <p class="why-card-title">"One tool, many databases"</p>
                         <p class="why-card-body">
-                            "Built on a pluggable driver: Postgres today; MySQL, SQLite, SurrealDB, MongoDB planned. SQL and NoSQL under one workflow."
+                            "Built on a pluggable MigrationDriver: PostgreSQL today, SQLite next, more backends via the driver interface."
                         </p>
                     </div>
                 </div>
@@ -424,24 +424,16 @@ pub fn LandingPage() -> impl IntoView {
                         </ul>
                     </div>
                     <div class="phase-item">
-                        <p class="phase-label">"Phase 1"</p>
+                        <p class="phase-label">"Next"</p>
                         <ul class="phase-db-list">
-                            <li>"MySQL / MariaDB"</li>
                             <li>"SQLite"</li>
                         </ul>
                     </div>
                     <div class="phase-item">
-                        <p class="phase-label">"Phase 2"</p>
+                        <p class="phase-label">"Community / driver interface"</p>
                         <ul class="phase-db-list">
-                            <li>"CockroachDB"</li>
-                            <li>"mco-db"</li>
-                        </ul>
-                    </div>
-                    <div class="phase-item">
-                        <p class="phase-label">"Phase 3+"</p>
-                        <ul class="phase-db-list">
-                            <li>"SurrealDB"</li>
-                            <li>"MongoDB"</li>
+                            <li>"MySQL / MariaDB"</li>
+                            <li>"Any backend via MigrationDriver"</li>
                         </ul>
                     </div>
                 </div>

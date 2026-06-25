@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use chrono::{DateTime, Utc};
 
 use crate::error::Result;
 use crate::migration::Migration;
@@ -12,7 +13,7 @@ pub struct AppliedMigration {
     pub checksum: String,
     pub description: Option<String>,
     pub batch: i32,
-    pub applied_at: sqlx::types::chrono::DateTime<sqlx::types::chrono::Utc>,
+    pub applied_at: DateTime<Utc>,
     pub applied_by: String,
     pub execution_ms: Option<i32>,
 }

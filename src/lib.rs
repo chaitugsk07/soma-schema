@@ -10,9 +10,10 @@ pub mod postgres;
 pub mod explorer;
 
 pub use discovery::discover;
+pub use driver::{AppliedMigration, LockGuard, MigrationDriver};
 pub use error::{Error, Result};
 pub use migration::{Migration, SetupFile};
-pub use migrator::Migrator;
+pub use migrator::{MigrationStatus, Migrator, PendingMigration};
 pub use postgres::{PostgresConfig, PostgresDriver};
 
 #[cfg(feature = "explorer")]

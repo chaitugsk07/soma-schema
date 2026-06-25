@@ -54,6 +54,7 @@ explorer = ["dep:serde_json", "dep:sqlparser"]
 
 [dependencies]
 async-trait = "0.1"
+chrono = { version = "0.4", features = ["clock"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", optional = true }
 serde_yml = "0.0.12"

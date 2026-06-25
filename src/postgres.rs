@@ -282,7 +282,7 @@ impl MigrationDriver for PostgresDriver {
     }
 
     async fn applied(&self) -> Result<Vec<AppliedMigration>> {
-        use sqlx::types::chrono::{DateTime, Utc};
+        use chrono::{DateTime, Utc};
         let qt = self.qualified_table();
         let sql = format!(
             "SELECT version, file, name, checksum, description, batch, applied_at, applied_by, execution_ms \

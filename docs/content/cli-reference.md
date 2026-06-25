@@ -88,6 +88,24 @@ Output lists:
 
 Checksums are verified during `status` — a drift error will surface here before you attempt `up` or `down`.
 
+## `explorer`
+
+Build a self-contained visual explorer for your migrations directory — no database connection needed.
+
+```sh
+soma-schema --migrations <PATH> explorer [--format html|json] [--out <PATH>] [--no-open]
+```
+
+| Flag | Default | Description |
+|---|---|---|
+| `--format <FORMAT>` | `html` | Output format: `html` (self-contained page) or `json` (raw data) |
+| `--out <PATH>` | temp file (html) / stdout (json) | Write output to this path instead of the default |
+| `--no-open` | off | Skip opening the browser after writing the HTML file |
+
+The HTML output includes a schema ERD, a version-grouped migration timeline, and seed-data tables. For `--format json`, the structured data is written to stdout (or the path given by `--out`) so other tools can consume it.
+
+`--database-url` is not required for this subcommand.
+
 ## Exit codes
 
 | Code | Meaning |

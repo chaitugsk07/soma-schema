@@ -935,6 +935,7 @@ html:not(.dark) .doc-page pre {
 
 /* ── Reduced motion ─────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
   .hero-eyebrow, .hero-title, .hero-subtitle, .hero-ctas, .differentiator-grid {
     opacity: 1 !important;
     animation: none !important;

@@ -71,7 +71,9 @@ fn MigrationCard(order_num: usize, migration: MigrationEntry) -> impl IntoView {
                     <div class="lineage-tabs-list" role="tablist" aria-label="SQL sections">
                         <button
                             role="tab"
+                            id=format!("tab-up-{order_num}")
                             aria-selected=move || (tab.get() == "up").to_string()
+                            aria-controls=format!("panel-up-{order_num}")
                             class=move || {
                                 if tab.get() == "up" { "lineage-tab-btn active-up" }
                                 else { "lineage-tab-btn" }
@@ -82,7 +84,9 @@ fn MigrationCard(order_num: usize, migration: MigrationEntry) -> impl IntoView {
                         </button>
                         <button
                             role="tab"
+                            id=format!("tab-down-{order_num}")
                             aria-selected=move || (tab.get() == "down").to_string()
+                            aria-controls=format!("panel-down-{order_num}")
                             class=move || {
                                 if tab.get() == "down" { "lineage-tab-btn active-down" }
                                 else { "lineage-tab-btn" }
@@ -93,7 +97,12 @@ fn MigrationCard(order_num: usize, migration: MigrationEntry) -> impl IntoView {
                         </button>
                     </div>
                     // SQL content
-                    <div class="lineage-code-area">
+                    <div
+                        class="lineage-code-area"
+                        role="tabpanel"
+                        id=move || format!("panel-{}-{order_num}", tab.get())
+                        aria-labelledby=move || format!("tab-{}-{order_num}", tab.get())
+                    >
                         {move || {
                             if tab.get() == "up" {
                                 view! {

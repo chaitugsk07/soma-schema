@@ -147,7 +147,7 @@ soma-schema --database-url "$DATABASE_URL" --schema soma_iam --migrations migrat
 
 8. **`00_setup/` SQL must be idempotent.** Use `CREATE SCHEMA IF NOT EXISTS`, `CREATE OR REPLACE FUNCTION`, and similar. This directory runs on every `up()` and is never tracked.
 
-9. **SQL content follows the global db-standards skill.** soma-schema is the runner; `/db-standards` governs what the SQL may contain — naming, types, `pgcrypto` only, no exotic Postgres features for mco-db portability. Cross-reference it before writing migration SQL.
+9. **SQL content follows your service's own SQL conventions.** soma-schema is the runner and does not prescribe what SQL you write — naming, types, and allowed extensions are your service's concern.
 
 ---
 
@@ -170,8 +170,7 @@ Paste this into the consumer repo's own `CLAUDE.md`:
 ## Database migrations — soma-schema
 
 All database migrations use soma-schema (https://github.com/chaitugsk07/soma-schema).
-The canonical integration guide is soma-schema/CONSUMING.md. When wiring migrations or
-writing SQL, invoke /soma-schema (runner rules) and /db-standards (SQL content rules).
+The canonical integration guide is soma-schema/CONSUMING.md.
 
 Non-negotiable:
 1. Never edit an applied migration file. Checksum drift = immediate error on next run.
@@ -183,7 +182,8 @@ Non-negotiable:
 6. Pool max_connections >= 2 (one held for advisory lock).
 7. Unique advisory_lock_key per service when services share one Postgres database.
 8. 00_setup/ SQL is idempotent (IF NOT EXISTS, CREATE OR REPLACE) — runs every up().
-9. SQL content follows /db-standards (plain-Postgres baseline, pgcrypto only).
+9. SQL content follows your service's own SQL conventions (naming, types, allowed
+   extensions). soma-schema is the runner and does not prescribe what SQL you write.
 
 Adding a migration:
 - Create <YYYYMMDD>_<NN>_<name>.sql with UP + "-- DOWN ==" + DOWN.

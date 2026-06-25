@@ -166,6 +166,20 @@ mod cli {
                         p.version, p.file, created, author
                     );
                 }
+                if !status.drift_errors.is_empty() {
+                    eprintln!(
+                        "\n⚠ drift detected ({} issue{}):",
+                        status.drift_errors.len(),
+                        if status.drift_errors.len() != 1 {
+                            "s"
+                        } else {
+                            ""
+                        }
+                    );
+                    for err in &status.drift_errors {
+                        eprintln!("  - {err}");
+                    }
+                }
             }
         }
 

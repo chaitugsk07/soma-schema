@@ -39,7 +39,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 ```rust
 let driver = PostgresDriver::new(pool, PostgresConfig {
     schema:            Some("myapp".into()),
-    table:             Some("00_schema_migrations".into()), // default
+    table:             "00_schema_migrations".to_owned(), // default
     advisory_lock_key: 0x_6D79_6170_7020, // unique i64 per service
     ..Default::default()
 })?;

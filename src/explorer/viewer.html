@@ -234,14 +234,14 @@ function buildERD() {
 
     const hdr = document.createElement('div');
     hdr.className = 'tbl-header';
-    hdr.innerHTML = `<div class="tbl-schema">${t.schema}</div><div class="tbl-name">${t.name}</div>`;
+    hdr.innerHTML = `<div class="tbl-schema">${escHtml(t.schema)}</div><div class="tbl-name">${escHtml(t.name)}</div>`;
     card.appendChild(hdr);
 
     t.columns.forEach(c => {
       const row = document.createElement('div');
       row.className = 'tbl-col';
       const glyph = c.pk ? '🔑' : c.fk ? '🔗' : '';
-      row.innerHTML = `<span class="col-glyph">${glyph}</span><span class="col-name">${c.name}</span><span class="col-type">${c.type}</span>`;
+      row.innerHTML = `<span class="col-glyph">${glyph}</span><span class="col-name">${escHtml(c.name)}</span><span class="col-type">${escHtml(c.type)}</span>`;
       card.appendChild(row);
     });
 
@@ -332,13 +332,13 @@ function buildMigrations() {
     v.migrations.forEach(m => {
       const row = document.createElement('div');
       row.className = 'mig-row';
-      const shortHash = m.checksum ? m.checksum.slice(0, 8) : '';
+      const shortHash = m.checksum ? escHtml(m.checksum.slice(0, 8)) : '';
       const seedBadge = m.is_seed ? '<span class="seed-badge">SEED</span>' : '';
       row.innerHTML = `
         <div class="mig-summary" onclick="toggleMig(this)">
           <span class="mig-order">#${m.order_index + 1}</span>
-          <span class="mig-file">${m.file}</span>${seedBadge}
-          <span class="mig-why">${m.why || ''}</span>
+          <span class="mig-file">${escHtml(m.file)}</span>${seedBadge}
+          <span class="mig-why">${escHtml(m.why || '')}</span>
           <span class="mig-hash">${shortHash}</span>
           <span class="mig-chevron">›</span>
         </div>
@@ -360,7 +360,7 @@ function buildMigrations() {
     sf.className = 'setup-section';
     sf.innerHTML = '<h3>Setup files (run before every migration batch)</h3>';
     DATA.setup_files.forEach(f => {
-      sf.innerHTML += `<div class="setup-file-name">${f}</div>`;
+      sf.innerHTML += `<div class="setup-file-name">${escHtml(f)}</div>`;
     });
     cont.appendChild(sf);
   }

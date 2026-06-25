@@ -678,8 +678,13 @@ pub fn build_json(root: &Path) -> crate::Result<String> {
 /// Build and embed JSON into the viewer HTML template.
 ///
 /// Replaces the `__SOMA_DATA__` placeholder in `viewer.html` with the serialised JSON.
+/// The JSON is sanitised so that a literal `</script>` in any data value cannot break out
+/// of the enclosing `<script>` block. `<\/script>` is valid JSON and parses identically.
 pub fn render_html(root: &Path) -> crate::Result<String> {
     let json = build_json(root)?;
+    // Prevent </script> tag breakout: replace every occurrence so the literal tag
+    // sequence never appears inside the <script> block, regardless of data content.
+    let json = json.replace("</script>", r"<\/script>");
     Ok(include_str!("viewer.html").replace("__SOMA_DATA__", &json))
 }
 
@@ -732,5 +737,52 @@ mod tests {
         use sqlparser::ast::{Expr, Value};
         let expr = Expr::Value(Value::SingleQuotedString("hello".to_owned()));
         assert_eq!(render_value(&expr), "hello");
+    }
+
+    /// Verify that render_html() sanitises </script> so a data value containing that
+    /// sequence cannot break out of the enclosing <script> block in the generated HTML.
+    #[test]
+    fn render_html_escapes_script_breakout() {
+        // Build a minimal migrations directory in a temp dir so render_html can run.
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+
+        // Write migration-order.yaml
+        std::fs::create_dir_all(root.join("01_migrated/1")).unwrap();
+        std::fs::write(
+            root.join("migration-order.yaml"),
+            r#"manifest_version: 1
+versions:
+  - version: 1
+    description: "test"
+    migrations:
+      - file: "20260101_01_xss.sql"
+        why: "</script><script>alert(1)</script>"
+        author: "attacker"
+        created: "2026-01-01"
+"#,
+        )
+        .unwrap();
+
+        // Write the migration SQL file (content doesn't matter for this test)
+        std::fs::write(
+            root.join("01_migrated/1/20260101_01_xss.sql"),
+            "-- UP section\nSELECT 1;\n\n-- DOWN ==\n-- nothing\n",
+        )
+        .unwrap();
+
+        let html = render_html(root).expect("render_html should succeed");
+
+        // The raw breakout sequence must NOT appear in the output.
+        assert!(
+            !html.contains("</script><script>"),
+            "raw </script> breakout must not appear in rendered HTML"
+        );
+
+        // The escaped form must be present (proves the sanitisation ran).
+        assert!(
+            html.contains(r"<\/script>"),
+            "escaped <\\/script> must appear in rendered HTML"
+        );
     }
 }

@@ -52,6 +52,39 @@ The binary requires the `cli` feature, which is on by default.
 
 ---
 
+## AI-native: your agent writes the migrations
+
+Traditional migration tools (Flyway, Liquibase, sqlx-migrate) were built for humans typing commands. soma-schema ships the agent contract so your AI writes correct migrations from the start.
+
+Paste this block into your repo's `AGENTS.md` or `CLAUDE.md` (works with any agent — Claude, Cursor, Copilot, etc.):
+
+```text
+## Database migrations — soma-schema
+
+All database migrations use soma-schema (https://github.com/chaitugsk07/soma-schema).
+
+Non-negotiable:
+1. Never edit an applied migration file. Checksum drift = immediate error on next run.
+2. Every new .sql must be listed in migration-order.yaml (correct version, apply order).
+3. Write a DOWN section for every migration unless it is genuinely irreversible. Manifest
+   order must be FK-correct forward; rollback order is the exact reverse.
+4. Seeds use ON CONFLICT DO NOTHING in UP so re-runs are safe.
+5. One schema per service. 00_setup/ must CREATE SCHEMA IF NOT EXISTS it.
+6. Pool max_connections >= 2 (one held for advisory lock).
+7. Unique advisory_lock_key per service when services share one Postgres database.
+8. 00_setup/ SQL is idempotent (IF NOT EXISTS, CREATE OR REPLACE) — runs every up().
+
+Adding a migration:
+- Create <YYYYMMDD>_<NN>_<name>.sql with UP + "-- DOWN ==" + DOWN.
+- Add it to migration-order.yaml (created/author/why).
+- Run status to confirm pending, then up to apply.
+- Never touch the file again once applied to any environment.
+```
+
+With that block in place, an agent generating a migration will follow the invariants automatically — correct file format, manifest entry, idempotent seeds, and a proper DOWN section.
+
+---
+
 ## 60-second quickstart
 
 ```sh
@@ -84,6 +117,24 @@ soma-schema --database-url "$DATABASE_URL" --migrations migrations/ down --steps
 | `--migrations` | — | `migrations` | Path to migrations root |
 | `--schema` | — | (connection default) | Target schema |
 | `--table` | — | `00_schema_migrations` | Tracking table name |
+
+---
+
+## Visual explorer
+
+soma-schema can build a self-contained HTML explorer from your migrations directory — no database connection needed.
+
+```sh
+soma-schema --migrations migrations/ explorer
+```
+
+This writes an HTML file and opens it in your browser. The page shows a schema ERD, a version-grouped migration timeline, and seed-data tables.
+
+| Flag | Default | Description |
+| --- | --- | --- |
+| `--format html\|json` | `html` | HTML page or raw JSON |
+| `--out <path>` | temp file (html) / stdout (json) | Write to a specific path |
+| `--no-open` | off | Skip opening the browser |
 
 ---
 
@@ -233,18 +284,11 @@ The manifest ordering, full-file checksum detection, run-scoped locking, and ato
 
 **Today:** PostgreSQL only.
 
-**Planned backends** (none exist yet):
+**Next:** SQLite — the same plain-SQL UP/DOWN format, `BEGIN IMMEDIATE` as the lock primitive. A natural fit for the SQLite-now → Postgres-later pattern.
 
-| Backend | Phase | Notes |
-| --- | --- | --- |
-| MySQL / MariaDB | 1 | Plain SQL UP/DOWN; `GET_LOCK` primitive |
-| SQLite | 1 | Plain SQL UP/DOWN; `BEGIN IMMEDIATE` / file lock |
-| CockroachDB | 2 | Validation via existing Postgres driver |
-| mco-db | 2 | Postgres-wire engine; validation, not a new driver |
-| SurrealDB | 3 | SurrealQL payload; transaction-based lock |
-| MongoDB | 4 | Structured op format; best-effort atomicity (documented ceiling) |
+**Community-contributed backends** are welcome via the `MigrationDriver` trait. MySQL/MariaDB are the most natural candidates. Open an issue to coordinate.
 
-Full plan, phase descriptions, cross-cutting features, and driver contribution guide: [ROADMAP.md](ROADMAP.md).
+Full plan, cross-cutting features, and driver contribution guide: [ROADMAP.md](ROADMAP.md).
 
 ---
 

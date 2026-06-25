@@ -12,7 +12,7 @@ Without a locking mechanism, two `up` processes running simultaneously — a dep
 
 ## How soma-schema locks
 
-At the start of every `up`, `down`, or `status` call, soma-schema acquires a Postgres session-level advisory lock using `pg_try_advisory_lock`. The lock is held on a dedicated connection for the entire duration of the call. When the call returns — or if the call panics — a RAII guard (`PgLockGuard`) releases the lock via its `Drop` implementation.
+At the start of every `up`, `down`, or `status` call, soma-schema acquires a Postgres session-level advisory lock using `pg_advisory_lock`. The lock is held on a dedicated connection for the entire duration of the call. When the call returns — or if the call panics — a RAII guard (`PgLockGuard`) releases the lock via its `Drop` implementation.
 
 A second runner that arrives while the lock is held will block on `pg_advisory_lock` until the first runner finishes. It then acquires the lock itself, reads the updated tracking table, and proceeds with whatever remains.
 
