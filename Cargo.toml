@@ -57,7 +57,7 @@ async-trait = "0.1"
 chrono = { version = "0.4", features = ["clock"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", optional = true }
-serde_yml = "0.0.12"
+serde_yaml_ng = "0.10"
 sha2 = "0.10"
 sqlparser = { version = "0.52", optional = true }
 sqlx = { version = "0.8", features = ["runtime-tokio", "tls-rustls", "postgres", "chrono"] }

@@ -40,7 +40,7 @@ impl Manifest {
     /// Returns `Error::UnsupportedManifestVersion` if `manifest_version != 1`.
     pub fn from_yaml(yaml: &str) -> Result<Self> {
         let manifest: Manifest =
-            serde_yml::from_str(yaml).map_err(|e| Error::ManifestParse(e.to_string()))?;
+            serde_yaml_ng::from_str(yaml).map_err(|e| Error::ManifestParse(e.to_string()))?;
 
         if manifest.manifest_version != 1 {
             return Err(Error::UnsupportedManifestVersion {
