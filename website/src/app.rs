@@ -173,7 +173,7 @@ fn Nav() -> impl IntoView {
                     >
                         "GitHub"
                     </a>
-                    <ThemeToggle />
+                    <span class="theme-toggle-wrap"><ThemeToggle /></span>
                 </nav>
                 // Mobile hamburger
                 <button
@@ -204,7 +204,7 @@ fn Nav() -> impl IntoView {
                     >
                         "GitHub"
                     </a>
-                    <div class="mt-2"><ThemeToggle /></div>
+                    <div class="mt-2"><span class="theme-toggle-wrap"><ThemeToggle /></span></div>
                 </nav>
             })}
         </header>

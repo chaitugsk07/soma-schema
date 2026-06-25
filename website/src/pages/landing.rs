@@ -91,6 +91,23 @@ pub fn LandingPage() -> impl IntoView {
                 </div>
             </section>
 
+            // ── ORIGIN STORY ───────────────────────────────────────────────
+            <section class="page-section landing-container ss-anim-1" aria-labelledby="origin-heading">
+                <div class="origin-story">
+                    <span class="origin-eyebrow" id="origin-heading">"Why I built this"</span>
+                    <div class="origin-body">
+                        <p>
+                            "I build a lot with AI coding agents now, and the database layer is where it kept falling apart. The agent would write a migration that ran out of order, edit one that was already applied, skip the rollback, or quietly break a foreign-key drop \u{2014} and nothing I tried was built for that workflow. Every migration tool assumed a human typing commands, not an agent generating SQL."
+                        </p>
+                        <p>
+                            "So I built the one I wanted: migrations an agent can\u{2019}t get wrong, the rules it needs written down (drop an AGENTS.md in and it follows them), and a visual explorer so I can actually see the schema and seed data it produced. soma-schema is the schema tool I wish I\u{2019}d had when I started building with agents."
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <div class="ss-separator landing-container"></div>
+
             // ── AI-NATIVE ──────────────────────────────────────────────────
             {
                 let agent_rules = "## Database migrations — soma-schema\n\nThis project uses soma-schema for all database migrations.\nDocs: https://chaitugsk07.github.io/soma-schema · Repo: https://github.com/chaitugsk07/soma-schema\n\nWhen asked to change the database schema, generate a soma-schema migration. Do NOT\nhand-edit the database or any already-applied migration file.\n\nHow migrations work here:\n- Plain SQL files under migrations/01_migrated/<version>/, each with an UP section,\n  a line that trims to exactly \"-- DOWN ==\", then a DOWN section.\n- Every file is listed in migrations/migration-order.yaml, which defines apply order\n  (top to bottom) and rollback order (the exact reverse).\n- The runner checksums the whole file (UP+DOWN) and applies + records each migration\n  in one transaction, under a database advisory lock.\n\nRules when generating a migration:\n1. NEVER edit a migration that was already applied — checksum drift errors the next run.\n   To change deployed schema, write a NEW migration.\n2. Add every new .sql to migration-order.yaml in the correct version block, in apply order.\n3. Write a DOWN that undoes UP in FK-safe reverse order (drop children before parents).\n4. Seeds are idempotent: UP uses ON CONFLICT DO NOTHING so re-runs are safe.\n5. One schema per service; 00_setup/ must CREATE SCHEMA IF NOT EXISTS it (idempotent only).\n6. Follow this project's existing SQL conventions (naming, types, allowed extensions).\n\nTo add a migration:\n- Create migrations/01_migrated/<version>/<YYYYMMDD>_<NN>_<name>.sql with UP + \"-- DOWN ==\" + DOWN.\n- Add it to migration-order.yaml (created/author/why).\n- Run: soma-schema --migrations migrations status   (confirm it's pending)\n- Run: soma-schema --migrations migrations up        (apply it)\n- Never touch the file again once applied.".to_string();

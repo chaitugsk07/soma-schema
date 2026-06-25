@@ -1190,6 +1190,65 @@ body {
 }
 
 /* ═══════════════════════════════════════════════════════════════
+   THEME TOGGLE — make it obviously a control, not faint text
+═══════════════════════════════════════════════════════════════ */
+.theme-toggle-wrap button {
+  color: hsl(var(--foreground));
+  border: 1px solid hsl(var(--border));
+  border-radius: 6px;
+  padding: 0.25rem 0.4rem;
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.theme-toggle-wrap button:hover {
+  background: hsl(var(--accent));
+  border-color: hsl(var(--primary) / 0.5);
+  color: hsl(var(--foreground));
+}
+.theme-toggle-wrap button:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ORIGIN STORY SECTION — "Why I built this"
+═══════════════════════════════════════════════════════════════ */
+.origin-story {
+  max-width: 68ch;
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-left: 3px solid hsl(var(--primary) / 0.7);
+  border-radius: 0 12px 12px 0;
+  padding: 1.5rem 1.75rem;
+}
+
+.origin-eyebrow {
+  font-family: var(--font-heading);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: hsl(var(--primary));
+  display: block;
+  margin-bottom: 0.6rem;
+}
+
+.origin-body {
+  font-size: 0.97rem;
+  line-height: 1.75;
+  color: hsl(var(--foreground) / 0.85);
+  overflow-wrap: break-word;
+}
+
+.origin-body p + p {
+  margin-top: 0.9rem;
+}
+
+/* ═══════════════════════════════════════════════════════════════
    MOBILE NAV HAMBURGER
 ═══════════════════════════════════════════════════════════════ */
 .nav-hamburger {
