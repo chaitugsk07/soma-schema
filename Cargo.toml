@@ -1,0 +1,74 @@
+[package]
+name = "soma-schema"
+version = "0.1.0"
+edition = "2021"
+description = "A standalone, reusable SQL migration tool — plain SQL files with UP/DOWN, version tracking, and advisory-lock safety. Postgres first, designed multi-DB."
+license = "Apache-2.0"
+keywords = ["migration", "database", "postgres", "sql", "schema"]
+categories = ["database", "command-line-utilities"]
+readme = "README.md"
+repository = "https://github.com/chaitugsk07/soma-schema"
+homepage = "https://github.com/chaitugsk07/soma-schema"
+documentation = "https://docs.rs/soma-schema"
+# Published crate = code + examples + README + LICENSE only. Everything else
+# (website, docs site, tooling, project-management markdown) stays in the git
+# repo but is kept out of the crate tarball.
+exclude = [
+  "website",
+  "docs",
+  "tools",
+  ".github",
+  "graphify-out",
+  "examples/*/target",
+  "*.db",
+  "*.rlib",
+  "*.png",
+  ".claude",
+  ".graphifyignore",
+  ".mcp.json",
+  "screenshots",
+  "responsive-shots",
+  "temp",
+  "CLAUDE.md",
+  "ROADMAP.md",
+  "CONSUMING.md",
+  "CONTRIBUTING.md",
+  "CODE_OF_CONDUCT.md",
+  "SECURITY.md",
+  "LAUNCH.md",
+]
+
+[lib]
+name = "soma_schema"
+path = "src/lib.rs"
+
+[[bin]]
+name = "soma-schema"
+path = "src/main.rs"
+required-features = ["cli"]
+
+[features]
+default = ["cli"]
+cli = ["dep:clap"]
+
+[dependencies]
+async-trait = "0.1"
+serde = { version = "1", features = ["derive"] }
+serde_yml = "0.0.12"
+sha2 = "0.10"
+sqlx = { version = "0.8", features = ["runtime-tokio", "tls-rustls", "postgres", "chrono"] }
+thiserror = "2"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync"] }
+clap = { version = "4", features = ["derive", "env"], optional = true }
+
+[dev-dependencies]
+tempfile = "3"
+uuid = { version = "1", features = ["v4"] }
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+strip = true
+# panic = "abort" is intentionally omitted: we need unwinding so Drop-based
+# advisory-lock release (PgLockGuard) and test schema cleanup run on panics.

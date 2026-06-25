@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <script>
+      if (localStorage.theme === 'dark' || (!('theme' in localStorage) && matchMedia('(prefers-color-scheme: dark)').matches))
+        document.documentElement.classList.add('dark');
+      else
+        document.documentElement.classList.remove('dark');
+    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Plain SQL Postgres migrations for Rust — manifest-defined ordering, full-file drift detection, and advisory locking." />
+    <title>soma-schema — Postgres migrations for Rust</title>
+    <!-- JetBrains Mono for code/checksums/filenames -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link data-trunk rel="tailwind-css" href="style/main.css" />
+    <link data-trunk rel="copy-dir" href="../../soma-ui/web/theme/fonts" data-target-path="fonts" />
+    <link data-trunk rel="rust" />
+</head>
+<body class="min-h-screen">
+    <div id="app"></div>
+</body>
+</html>

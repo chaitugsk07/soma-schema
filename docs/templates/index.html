@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}{{ config.title }} — documentation{% endblock title %}
+
+{% block content %}
+<div class="hero-section">
+  <span class="hero-eyebrow">Documentation</span>
+  <h1 class="hero-title">soma&#8209;<span class="accent">schema</span></h1>
+  <p class="hero-subtitle">Plain SQL database migrations for Rust — manifest-defined ordering, full-file drift detection, and run-scoped advisory locking.</p>
+  <div class="hero-ctas">
+    <a href="{{ config.base_url }}/quickstart/" class="btn-primary">&#8594; Quickstart</a>
+    <a href="{{ config.base_url }}/installation/" class="btn-ghost">Installation</a>
+  </div>
+
+  <div class="differentiator-grid">
+    <div class="differentiator-card card-primary">
+      <div class="card-eyebrow">Manifest ordering</div>
+      <div class="card-title">Explicit order. Deterministic rollback.</div>
+      <div class="card-desc"><code>migration-order.yaml</code> defines apply and rollback order explicitly — not filename sort. FK-safe rollback without naming conventions.</div>
+    </div>
+    <div class="differentiator-card card-forward">
+      <div class="card-eyebrow">Drift detection</div>
+      <div class="card-title">Full-file SHA-256 checksums.</div>
+      <div class="card-desc">The checksum covers UP and DOWN together. Editing the DOWN section of a deployed migration is caught as <code>ChecksumDrift</code> on next run.</div>
+    </div>
+    <div class="differentiator-card card-rollback">
+      <div class="card-eyebrow">Atomic apply</div>
+      <div class="card-title">Apply and track in one transaction.</div>
+      <div class="card-desc">Migration SQL and its tracking row commit atomically. A crash between those two operations leaves no split state.</div>
+    </div>
+    <div class="differentiator-card card-drift">
+      <div class="card-eyebrow">Advisory lock</div>
+      <div class="card-title">Run-scoped Postgres lock.</div>
+      <div class="card-desc">One advisory lock held for the entire <code>up</code>/<code>down</code> call via a RAII guard. Concurrent runners block rather than collide.</div>
+    </div>
+  </div>
+</div>
+
+<article class="doc-page">
+  {{ section.content | safe }}
+</article>
+{% endblock content %}

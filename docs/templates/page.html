@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}{{ page.title }} — {{ config.title }}{% endblock title %}
+
+{% block description %}{% if page.description %}{{ page.description }}{% else %}{{ config.description }}{% endif %}{% endblock description %}
+
+{% block content %}
+<article class="doc-page">
+  {% if page.components %}
+    <span class="page-eyebrow">{{ page.components[0] | replace(from="-", to=" ") }}</span>
+  {% endif %}
+  <h1>{{ page.title }}</h1>
+
+  {% if page.toc %}
+    <nav class="page-toc" aria-label="On this page">
+      <span class="toc-label">On this page</span>
+      <ul>
+        {% for h in page.toc %}
+          <li><a href="{{ h.permalink }}">{{ h.title }}</a>
+            {% if h.children %}
+              <ul>
+                {% for child in h.children %}
+                  <li><a href="{{ child.permalink }}">{{ child.title }}</a></li>
+                {% endfor %}
+              </ul>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    </nav>
+  {% endif %}
+
+  {{ page.content | safe }}
+</article>
+{% endblock content %}

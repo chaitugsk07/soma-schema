@@ -1,0 +1,30 @@
+# soma-schema documentation — Zola config
+#
+# base_url: set to the GitHub Pages URL for now.
+# If the site is served from a subpath (e.g. /soma-schema/docs), adjust
+# base_url to include that path and set the Zola --base-url flag at build time.
+base_url = "https://chaitugsk07.github.io/soma-schema"
+
+title = "soma-schema"
+description = "Plain SQL database migrations for Rust — manifest-defined ordering, full-file drift detection, and run-scoped advisory locking."
+
+# We ship plain CSS; no Sass compilation needed.
+compile_sass = false
+
+# Enable if search is added later; off for now to keep it simple.
+build_search_index = false
+
+generate_feeds = false
+
+default_language = "en"
+
+[markdown]
+[markdown.highlighting]
+# Dark code block theme that matches the control-room aesthetic.
+theme = "ayu-dark"
+
+[extra]
+github_url = "https://github.com/chaitugsk07/soma-schema"
+# Placeholder — update when a project website or crates.io page is published.
+website_url = "https://crates.io/crates/soma-schema"
+crates_url = "https://crates.io/crates/soma-schema"

@@ -1,0 +1,26 @@
+# migration-order.yaml
+# Canonical, ordered record of every migration. The runner executes migrations
+# in this exact order: versions ascending, then each migration top-to-bottom.
+#
+# RULES:
+#   - Every .sql file under a version folder MUST be listed here.
+#   - Every entry MUST resolve to a real file (01_migrated/<v>/<file> or 02_inprogress/<v>/<file>).
+#   - 'file' must be a bare filename (no path separators, no '..', must end in .sql).
+#   - (00_setup files are NOT listed here — they are the untracked idempotent bootstrap.)
+#
+# Version folders are named by a positive integer (1, 2, 3, ...).
+# Stay in version 1 until you deliberately move to version 2.
+# Sort versions NUMERICALLY (1, 2, ..., 10 — never lexically, so 10 comes after 2).
+manifest_version: 1
+versions:
+  - version: 1
+    description: "Initial example schema"
+    migrations:
+      - file: "20260101_01_init.sql"
+        created: "2026-01-01"
+        author: "example"
+        why: "Create the widgets table"
+      - file: "20260101_02_seed.sql"
+        created: "2026-01-01"
+        author: "example"
+        why: "Seed initial widget registry rows (idempotent via ON CONFLICT DO NOTHING)"

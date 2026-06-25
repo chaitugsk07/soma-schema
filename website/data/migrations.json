@@ -1,0 +1,641 @@
+{
+  "generated_for": "examples/showcase",
+  "versions": [
+    {
+      "version": 1,
+      "migrations": [
+        {
+          "order_index": 0,
+          "version": 1,
+          "file": "20260101_01_organizations.sql",
+          "name": "20260101_01_organizations",
+          "checksum": "2ea8576c90bcd0c1b6ea8e23035efa2531e7d7a0dea5c0f599fc61f4245e9a45",
+          "created": "2026-01-01",
+          "author": "soma",
+          "why": "Establish the organizations table as the root tenant boundary — every other object belongs to an org",
+          "up_sql": "CREATE TABLE vault.organizations (\n    id         uuid        NOT NULL DEFAULT gen_random_uuid(),\n    name       text        NOT NULL,\n    slug       text        NOT NULL,\n    created_at timestamptz NOT NULL DEFAULT now(),\n    CONSTRAINT organizations_pkey PRIMARY KEY (id),\n    CONSTRAINT organizations_slug_key UNIQUE (slug)\n);\n",
+          "down_sql": "DROP TABLE IF EXISTS vault.organizations;"
+        },
+        {
+          "order_index": 1,
+          "version": 1,
+          "file": "20260101_02_users.sql",
+          "name": "20260101_02_users",
+          "checksum": "3d5887b775c826dcf3096a5d9ff50e3d16d38d684311ba83d8eebf19dd699c46",
+          "created": "2026-01-01",
+          "author": "soma",
+          "why": "Users are identity records; they join orgs via memberships rather than being owned by one org",
+          "up_sql": "CREATE TABLE vault.users (\n    id         uuid        NOT NULL DEFAULT gen_random_uuid(),\n    email      text        NOT NULL,\n    name       text        NOT NULL,\n    created_at timestamptz NOT NULL DEFAULT now(),\n    CONSTRAINT users_pkey PRIMARY KEY (id),\n    CONSTRAINT users_email_key UNIQUE (email)\n);\n",
+          "down_sql": "DROP TABLE IF EXISTS vault.users;"
+        },
+        {
+          "order_index": 2,
+          "version": 1,
+          "file": "20260101_03_memberships_projects.sql",
+          "name": "20260101_03_memberships_projects",
+          "checksum": "14c383d921c4efb39769703e1da3fe1830bec657b1c987b53fcb43a22c0f2325",
+          "created": "2026-01-01",
+          "author": "soma",
+          "why": "Membership links users to orgs with a role; projects are the top-level work units owned by an org",
+          "up_sql": "CREATE TABLE vault.organization_memberships (\n    id         uuid        NOT NULL DEFAULT gen_random_uuid(),\n    org_id     uuid        NOT NULL REFERENCES vault.organizations (id),\n    user_id    uuid        NOT NULL REFERENCES vault.users (id),\n    role       text        NOT NULL,\n    created_at timestamptz NOT NULL DEFAULT now(),\n    CONSTRAINT organization_memberships_pkey PRIMARY KEY (id)\n);\n\nCREATE TABLE vault.projects (\n    id         uuid        NOT NULL DEFAULT gen_random_uuid(),\n    org_id     uuid        NOT NULL REFERENCES vault.organizations (id),\n    name       text        NOT NULL,\n    created_at timestamptz NOT NULL DEFAULT now(),\n    CONSTRAINT projects_pkey PRIMARY KEY (id)\n);\n",
+          "down_sql": "DROP TABLE IF EXISTS vault.projects;\nDROP TABLE IF EXISTS vault.organization_memberships;"
+        },
+        {
+          "order_index": 3,
+          "version": 1,
+          "file": "20260101_04_environments_secrets.sql",
+          "name": "20260101_04_environments_secrets",
+          "checksum": "1ac806b0e3c8ba71972004f81aebdecf9fd6113771caacb26ff0009bb7534396",
+          "created": "2026-01-01",
+          "author": "soma",
+          "why": "Environments scope secrets to a deployment target (dev/staging/prod) within a project",
+          "up_sql": "CREATE TABLE vault.environments (\n    id         uuid        NOT NULL DEFAULT gen_random_uuid(),\n    project_id uuid        NOT NULL REFERENCES vault.projects (id),\n    name       text        NOT NULL,\n    created_at timestamptz NOT NULL DEFAULT now(),\n    CONSTRAINT environments_pkey PRIMARY KEY (id)\n);\n\nCREATE TABLE vault.secrets (\n    id             uuid        NOT NULL DEFAULT gen_random_uuid(),\n    environment_id uuid        NOT NULL REFERENCES vault.environments (id),\n    key            text        NOT NULL,\n    value          text        NOT NULL,\n    created_at     timestamptz NOT NULL DEFAULT now(),\n    CONSTRAINT secrets_pkey PRIMARY KEY (id)\n);\n",
+          "down_sql": "DROP TABLE IF EXISTS vault.secrets;\nDROP TABLE IF EXISTS vault.environments;"
+        }
+      ]
+    },
+    {
+      "version": 2,
+      "migrations": [
+        {
+          "order_index": 4,
+          "version": 2,
+          "file": "20260201_01_audit_api_keys.sql",
+          "name": "20260201_01_audit_api_keys",
+          "checksum": "cfbabe8875c96daf8a74fd8ddde8c9ef191cf8e44e8bd33bea4744a0e9f7f964",
+          "created": "2026-02-01",
+          "author": "soma",
+          "why": "Audit logs provide a tamper-evident trail of org actions; API keys enable machine authentication scoped to an org",
+          "up_sql": "CREATE TABLE vault.audit_logs (\n    id         uuid        NOT NULL DEFAULT gen_random_uuid(),\n    org_id     uuid        NOT NULL,\n    user_id    uuid        NOT NULL,\n    action     text        NOT NULL,\n    created_at timestamptz NOT NULL DEFAULT now(),\n    CONSTRAINT audit_logs_pkey PRIMARY KEY (id)\n);\n\nALTER TABLE vault.audit_logs\n    ADD CONSTRAINT audit_logs_org_id_fkey\n    FOREIGN KEY (org_id) REFERENCES vault.organizations (id);\n\nALTER TABLE vault.audit_logs\n    ADD CONSTRAINT audit_logs_user_id_fkey\n    FOREIGN KEY (user_id) REFERENCES vault.users (id);\n\nCREATE TABLE vault.api_keys (\n    id         uuid        NOT NULL DEFAULT gen_random_uuid(),\n    org_id     uuid        NOT NULL REFERENCES vault.organizations (id),\n    name       text        NOT NULL,\n    hash       text        NOT NULL,\n    created_at timestamptz NOT NULL DEFAULT now(),\n    CONSTRAINT api_keys_pkey PRIMARY KEY (id)\n);\n",
+          "down_sql": "DROP TABLE IF EXISTS vault.api_keys;\nDROP TABLE IF EXISTS vault.audit_logs;"
+        },
+        {
+          "order_index": 5,
+          "version": 2,
+          "file": "20260201_02_project_description.sql",
+          "name": "20260201_02_project_description",
+          "checksum": "7954c6ff8b0739498a2e39aa75c5132465bfd9ef450b8e0d477d5f3c5cf83bf2",
+          "created": "2026-02-01",
+          "author": "soma",
+          "why": "Add optional description to projects after initial launch — nullable so existing rows need no backfill",
+          "up_sql": "ALTER TABLE vault.projects ADD COLUMN description text;\n",
+          "down_sql": "ALTER TABLE vault.projects DROP COLUMN IF EXISTS description;"
+        }
+      ]
+    }
+  ],
+  "apply_order": [
+    {
+      "order_index": 0,
+      "version": 1,
+      "file": "20260101_01_organizations.sql",
+      "name": "20260101_01_organizations"
+    },
+    {
+      "order_index": 1,
+      "version": 1,
+      "file": "20260101_02_users.sql",
+      "name": "20260101_02_users"
+    },
+    {
+      "order_index": 2,
+      "version": 1,
+      "file": "20260101_03_memberships_projects.sql",
+      "name": "20260101_03_memberships_projects"
+    },
+    {
+      "order_index": 3,
+      "version": 1,
+      "file": "20260101_04_environments_secrets.sql",
+      "name": "20260101_04_environments_secrets"
+    },
+    {
+      "order_index": 4,
+      "version": 2,
+      "file": "20260201_01_audit_api_keys.sql",
+      "name": "20260201_01_audit_api_keys"
+    },
+    {
+      "order_index": 5,
+      "version": 2,
+      "file": "20260201_02_project_description.sql",
+      "name": "20260201_02_project_description"
+    }
+  ],
+  "rollback_order": [
+    {
+      "order_index": 5,
+      "version": 2,
+      "file": "20260201_02_project_description.sql",
+      "name": "20260201_02_project_description"
+    },
+    {
+      "order_index": 4,
+      "version": 2,
+      "file": "20260201_01_audit_api_keys.sql",
+      "name": "20260201_01_audit_api_keys"
+    },
+    {
+      "order_index": 3,
+      "version": 1,
+      "file": "20260101_04_environments_secrets.sql",
+      "name": "20260101_04_environments_secrets"
+    },
+    {
+      "order_index": 2,
+      "version": 1,
+      "file": "20260101_03_memberships_projects.sql",
+      "name": "20260101_03_memberships_projects"
+    },
+    {
+      "order_index": 1,
+      "version": 1,
+      "file": "20260101_02_users.sql",
+      "name": "20260101_02_users"
+    },
+    {
+      "order_index": 0,
+      "version": 1,
+      "file": "20260101_01_organizations.sql",
+      "name": "20260101_01_organizations"
+    }
+  ],
+  "setup_files": [
+    "01_schema.sql"
+  ],
+  "schema": {
+    "tables": [
+      {
+        "name": "api_keys",
+        "schema": "vault",
+        "x": 380,
+        "y": 0,
+        "columns": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "pk": true,
+            "nullable": false,
+            "unique": false,
+            "default": "gen_random_uuid()",
+            "fk": null
+          },
+          {
+            "name": "org_id",
+            "type": "uuid",
+            "pk": false,
+            "nullable": false,
+            "unique": false,
+            "default": null,
+            "fk": {
+              "table": "organizations",
+              "column": "id"
+            }
+          },
+          {
+            "name": "name",
+            "type": "text",
+            "pk": false,
+            "nullable": false,
+            "unique": false,
+            "default": null,
+            "fk": null
+          },
+          {
+            "name": "hash",
+            "type": "text",
+            "pk": false,
+            "nullable": false,
+            "unique": false,
+            "default": null,
+            "fk": null
+          },
+          {
+            "name": "created_at",
+            "type": "timestamptz",
+            "pk": false,
+            "nullable": false,
+            "unique": false,
+            "default": "now()",
+            "fk": null
+          }
+        ]
+      },
+      {
+        "name": "audit_logs",
+        "schema": "vault",
+        "x": 380,
+        "y": 236,
+        "columns": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "pk": true,
+            "nullable": false,
+            "unique": false,
+            "default": "gen_random_uuid()",
+            "fk": null
+          },
+          {
+            "name": "org_id",
+            "type": "uuid",
+            "pk": false,
+            "nullable": false,
+            "unique": false,
+            "default": null,
+            "fk": {
+              "table": "organizations",
+              "column": "id"
+            }
+          },
+          {
+            "name": "user_id",
+            "type": "uuid",
+            "pk": false,
+            "nullable": false,
+            "unique": false,
+            "default": null,
+            "fk": {
+              "table": "users",
+              "column": "id"
+            }
+          },
+          {
+            "name": "action",
+            "type": "text",
+            "pk": false,
+            "nullable": false,
+            "unique": false,
+            "default": null,
+            "fk": null
+          },
+          {
+            "name": "created_at",
+            "type": "timestamptz",
+            "pk": false,
+            "nullable": false,
+            "unique": false,
+            "default": "now()",
+            "fk": null
+          }
+        ]
+      },
+      {
+        "name": "environments",
+        "schema": "vault",
+        "x": 760,
+        "y": 0,
+        "columns": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "pk": true,
+            "nullable": false,
+            "unique": false,
+            "default": "gen_random_uuid()",
+            "fk": null
+          },
+          {
+            "name": "project_id",
+            "type": "uuid",
+            "pk": false,
+            "nullable": false,
+            "unique": false,
+            "default": null,
+            "fk": {
+              "table": "projects",
+              "column": "id"
+            }
+          },
+          {
+            "name": "name",
+            "type": "text",
+            "pk": false,
+            "nullable": false,
+            "unique": false,
+            "default": null,
+            "fk": null
+          },
+          {
+            "name": "created_at",
+            "type": "timestamptz",
+            "pk": false,
+            "nullable": false,
+            "unique": false,
+            "default": "now()",
+            "fk": null
+          }
+        ]
+      },
+      {
+        "name": "organization_memberships",
+        "schema": "vault",
+        "x": 380,
+        "y": 472,
+        "columns": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "pk": true,
+            "nullable": false,
+            "unique": false,
+            "default": "gen_random_uuid()",
+            "fk": null
+          },
+          {
+            "name": "org_id",
+            "type": "uuid",
+            "pk": false,
+            "nullable": false,
+            "unique": false,
+            "default": null,
+            "fk": {
+              "table": "organizations",
+              "column": "id"
+            }
+          },
+          {
+            "name": "user_id",
+            "type": "uuid",
+            "pk": false,
+            "nullable": false,
+            "unique": false,
+            "default": null,
+            "fk": {
+              "table": "users",
+              "column": "id"
+            }
+          },
+          {
+            "name": "role",
+            "type": "text",
+            "pk": false,
+            "nullable": false,
+            "unique": false,
+            "default": null,
+            "fk": null
+          },
+          {
+            "name": "created_at",
+            "type": "timestamptz",
+            "pk": false,
+            "nullable": false,
+            "unique": false,
+            "default": "now()",
+            "fk": null
+          }
+        ]
+      },
+      {
+        "name": "organizations",
+        "schema": "vault",
+        "x": 0,
+        "y": 0,
+        "columns": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "pk": true,
+            "nullable": false,
+            "unique": false,
+            "default": "gen_random_uuid()",
+            "fk": null
+          },
+          {
+            "name": "name",
+            "type": "text",
+            "pk": false,
+            "nullable": false,
+            "unique": false,
+            "default": null,
+            "fk": null
+          },
+          {
+            "name": "slug",
+            "type": "text",
+            "pk": false,
+            "nullable": false,
+            "unique": true,
+            "default": null,
+            "fk": null
+          },
+          {
+            "name": "created_at",
+            "type": "timestamptz",
+            "pk": false,
+            "nullable": false,
+            "unique": false,
+            "default": "now()",
+            "fk": null
+          }
+        ]
+      },
+      {
+        "name": "projects",
+        "schema": "vault",
+        "x": 380,
+        "y": 708,
+        "columns": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "pk": true,
+            "nullable": false,
+            "unique": false,
+            "default": "gen_random_uuid()",
+            "fk": null
+          },
+          {
+            "name": "org_id",
+            "type": "uuid",
+            "pk": false,
+            "nullable": false,
+            "unique": false,
+            "default": null,
+            "fk": {
+              "table": "organizations",
+              "column": "id"
+            }
+          },
+          {
+            "name": "name",
+            "type": "text",
+            "pk": false,
+            "nullable": false,
+            "unique": false,
+            "default": null,
+            "fk": null
+          },
+          {
+            "name": "created_at",
+            "type": "timestamptz",
+            "pk": false,
+            "nullable": false,
+            "unique": false,
+            "default": "now()",
+            "fk": null
+          },
+          {
+            "name": "description",
+            "type": "text",
+            "pk": false,
+            "nullable": true,
+            "unique": false,
+            "default": null,
+            "fk": null
+          }
+        ]
+      },
+      {
+        "name": "secrets",
+        "schema": "vault",
+        "x": 1140,
+        "y": 0,
+        "columns": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "pk": true,
+            "nullable": false,
+            "unique": false,
+            "default": "gen_random_uuid()",
+            "fk": null
+          },
+          {
+            "name": "environment_id",
+            "type": "uuid",
+            "pk": false,
+            "nullable": false,
+            "unique": false,
+            "default": null,
+            "fk": {
+              "table": "environments",
+              "column": "id"
+            }
+          },
+          {
+            "name": "key",
+            "type": "text",
+            "pk": false,
+            "nullable": false,
+            "unique": false,
+            "default": null,
+            "fk": null
+          },
+          {
+            "name": "value",
+            "type": "text",
+            "pk": false,
+            "nullable": false,
+            "unique": false,
+            "default": null,
+            "fk": null
+          },
+          {
+            "name": "created_at",
+            "type": "timestamptz",
+            "pk": false,
+            "nullable": false,
+            "unique": false,
+            "default": "now()",
+            "fk": null
+          }
+        ]
+      },
+      {
+        "name": "users",
+        "schema": "vault",
+        "x": 0,
+        "y": 206,
+        "columns": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "pk": true,
+            "nullable": false,
+            "unique": false,
+            "default": "gen_random_uuid()",
+            "fk": null
+          },
+          {
+            "name": "email",
+            "type": "text",
+            "pk": false,
+            "nullable": false,
+            "unique": true,
+            "default": null,
+            "fk": null
+          },
+          {
+            "name": "name",
+            "type": "text",
+            "pk": false,
+            "nullable": false,
+            "unique": false,
+            "default": null,
+            "fk": null
+          },
+          {
+            "name": "created_at",
+            "type": "timestamptz",
+            "pk": false,
+            "nullable": false,
+            "unique": false,
+            "default": "now()",
+            "fk": null
+          }
+        ]
+      }
+    ],
+    "relations": [
+      {
+        "from_table": "api_keys",
+        "from_column": "org_id",
+        "to_table": "organizations",
+        "to_column": "id"
+      },
+      {
+        "from_table": "audit_logs",
+        "from_column": "org_id",
+        "to_table": "organizations",
+        "to_column": "id"
+      },
+      {
+        "from_table": "audit_logs",
+        "from_column": "user_id",
+        "to_table": "users",
+        "to_column": "id"
+      },
+      {
+        "from_table": "environments",
+        "from_column": "project_id",
+        "to_table": "projects",
+        "to_column": "id"
+      },
+      {
+        "from_table": "organization_memberships",
+        "from_column": "org_id",
+        "to_table": "organizations",
+        "to_column": "id"
+      },
+      {
+        "from_table": "organization_memberships",
+        "from_column": "user_id",
+        "to_table": "users",
+        "to_column": "id"
+      },
+      {
+        "from_table": "projects",
+        "from_column": "org_id",
+        "to_table": "organizations",
+        "to_column": "id"
+      },
+      {
+        "from_table": "secrets",
+        "from_column": "environment_id",
+        "to_table": "environments",
+        "to_column": "id"
+      }
+    ]
+  }
+}

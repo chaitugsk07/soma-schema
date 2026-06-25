@@ -1,0 +1,113 @@
+# Deploy website (Leptos/WASM via Trunk) + docs (Zola) to GitHub Pages.
+#
+# ASSUMPTIONS AND PREREQUISITES:
+#   1. Pages must be enabled: Settings → Pages → Source: "GitHub Actions".
+#   2. The --public-url and --base-url values below assume this repo is served
+#      at https://chaitugsk07.github.io/soma-schema/. If the repo name changes,
+#      update both values.
+#   3. The website has a path dependency on ../../soma-ui (a sibling repo in the
+#      soma-platform monorepo). This workflow checks out soma-ui alongside
+#      soma-schema so the relative path resolves. Both must be public repos, or
+#      you must supply a PAT with access to soma-ui in the GH_PAT secret.
+#      If soma-ui is private, add `token: ${{ secrets.GH_PAT }}` to its
+#      checkout step.
+#   4. Trunk 0.21+ auto-downloads the Tailwind CSS binary when it sees
+#      `rel="tailwind-css"` in index.html, so no separate Tailwind install step
+#      is needed here. If your Trunk version is older than 0.21, add a step to
+#      install the Tailwind CLI.
+#   5. The wasm32-unknown-unknown target is required for the Leptos CSR build.
+
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build website + docs
+    runs-on: ubuntu-latest
+    steps:
+      # Check out soma-schema into its expected relative location so that the
+      # path dependency ../../soma-ui/... resolves correctly.
+      - name: Checkout soma-schema
+        uses: actions/checkout@v4
+        with:
+          path: soma-schema
+
+      # Check out soma-ui as a sibling directory. If soma-ui is a private repo,
+      # add: token: ${{ secrets.GH_PAT }}
+      - name: Checkout soma-ui
+        uses: actions/checkout@v4
+        with:
+          repository: chaitugsk07/soma-ui
+          path: soma-ui
+
+      - name: Install Rust (stable + wasm target)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: soma-schema/website
+
+      # Install Trunk via cargo-binstall (faster than `cargo install trunk`).
+      - name: Install cargo-binstall
+        uses: cargo-bins/cargo-binstall@main
+
+      - name: Install Trunk
+        run: cargo binstall trunk --no-confirm
+
+      # Build the Leptos CSR site. public-url must match the GitHub Pages
+      # subpath so asset URLs are correct.
+      - name: Build website (Trunk)
+        working-directory: soma-schema/website
+        run: trunk build --release --public-url /soma-schema/
+
+      # CSR deep-link fix: copy index.html to 404.html so that client-side
+      # routes (e.g. /explorer) are served correctly on GitHub Pages.
+      - name: Copy index.html to 404.html (deep-link fix)
+        run: cp soma-schema/website/dist/index.html soma-schema/website/dist/404.html
+
+      # Install Zola for docs site build.
+      - name: Install Zola
+        uses: taiki-e/install-action@v2
+        with:
+          tool: zola
+
+      # Build docs into soma-schema/website/dist/docs so everything lives under
+      # one artifact root (website at /, docs at /docs).
+      - name: Build docs (Zola)
+        working-directory: soma-schema/docs
+        run: |
+          zola build \
+            --base-url https://chaitugsk07.github.io/soma-schema/docs/ \
+            --output-dir ../website/dist/docs
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: soma-schema/website/dist
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4

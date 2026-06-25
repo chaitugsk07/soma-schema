@@ -1,0 +1,34 @@
+# migration-order.yaml — showcase vault schema
+# Demonstrates a multi-tenant secrets vault with orgs, users, projects, environments, and secrets.
+manifest_version: 1
+versions:
+  - version: 1
+    description: "Core vault schema: organizations, users, memberships, projects, environments, secrets"
+    migrations:
+      - file: "20260101_01_organizations.sql"
+        created: "2026-01-01"
+        author: "soma"
+        why: "Establish the organizations table as the root tenant boundary — every other object belongs to an org"
+      - file: "20260101_02_users.sql"
+        created: "2026-01-01"
+        author: "soma"
+        why: "Users are identity records; they join orgs via memberships rather than being owned by one org"
+      - file: "20260101_03_memberships_projects.sql"
+        created: "2026-01-01"
+        author: "soma"
+        why: "Membership links users to orgs with a role; projects are the top-level work units owned by an org"
+      - file: "20260101_04_environments_secrets.sql"
+        created: "2026-01-01"
+        author: "soma"
+        why: "Environments scope secrets to a deployment target (dev/staging/prod) within a project"
+  - version: 2
+    description: "Audit trail and API key support"
+    migrations:
+      - file: "20260201_01_audit_api_keys.sql"
+        created: "2026-02-01"
+        author: "soma"
+        why: "Audit logs provide a tamper-evident trail of org actions; API keys enable machine authentication scoped to an org"
+      - file: "20260201_02_project_description.sql"
+        created: "2026-02-01"
+        author: "soma"
+        why: "Add optional description to projects after initial launch — nullable so existing rows need no backfill"
