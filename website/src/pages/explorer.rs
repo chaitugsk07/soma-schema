@@ -15,6 +15,7 @@ fn MigrationCard(order_num: usize, migration: MigrationEntry) -> impl IntoView {
     let created = StoredValue::new(migration.created.clone());
     let author = StoredValue::new(migration.author.clone());
     let checksum_short = migration.checksum.chars().take(10).collect::<String>();
+    let is_seed = migration.is_seed;
 
     view! {
         <div class="migration-card" role="listitem">
@@ -28,6 +29,12 @@ fn MigrationCard(order_num: usize, migration: MigrationEntry) -> impl IntoView {
                     {order_num}
                 </span>
                 <span class="migration-row-file">{file.get_value()}</span>
+                {is_seed.then(|| view! {
+                    <span
+                        style="display:inline-flex;align-items:center;padding:1px 7px;border-radius:12px;font-size:0.65rem;font-weight:600;letter-spacing:0.05em;background:rgba(16,185,129,0.12);color:#10b981;border:1px solid rgba(16,185,129,0.35);margin-left:4px;"
+                        aria-label="seed migration"
+                    >"SEED"</span>
+                })}
                 <span class="migration-row-why">{why.get_value()}</span>
                 <span class="migration-row-chips">
                     <span class="checksum-chip">{checksum_short}"…"</span>

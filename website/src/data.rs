@@ -13,6 +13,8 @@ pub struct MigrationEntry {
     pub created: String,
     pub author: String,
     pub why: String,
+    #[serde(default)]
+    pub is_seed: bool,
     pub up_sql: String,
     pub down_sql: String,
 }

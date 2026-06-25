@@ -79,6 +79,7 @@ header span { font-size: 12px; color: var(--text-muted); }
 .mig-file { flex: 1; font-size: 13px; font-family: var(--mono); color: var(--text); }
 .mig-why { flex: 2; font-size: 12px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .mig-hash { font-size: 10px; color: var(--text-muted); font-family: var(--mono); }
+.seed-badge { display: inline-flex; align-items: center; padding: 1px 7px; border-radius: 12px; font-size: 10px; font-weight: 600; letter-spacing: 0.04em; background: rgba(16,185,129,0.12); color: #10b981; border: 1px solid rgba(16,185,129,0.3); margin-left: 4px; }
 .mig-chevron { color: var(--text-muted); transition: transform 0.15s; font-size: 12px; }
 .mig-row.open .mig-chevron { transform: rotate(90deg); }
 .mig-detail { display: none; border-top: 1px solid var(--border); }
@@ -316,10 +317,11 @@ function buildMigrations() {
       const row = document.createElement('div');
       row.className = 'mig-row';
       const shortHash = m.checksum ? m.checksum.slice(0, 8) : '';
+      const seedBadge = m.is_seed ? '<span class="seed-badge">SEED</span>' : '';
       row.innerHTML = `
         <div class="mig-summary" onclick="toggleMig(this)">
           <span class="mig-order">#${m.order_index + 1}</span>
-          <span class="mig-file">${m.file}</span>
+          <span class="mig-file">${m.file}</span>${seedBadge}
           <span class="mig-why">${m.why || ''}</span>
           <span class="mig-hash">${shortHash}</span>
           <span class="mig-chevron">›</span>

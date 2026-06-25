@@ -16,6 +16,83 @@ fn validate_ident(s: &str) -> Result<()> {
     Ok(())
 }
 
+/// Split a SQL script into individual statements by semicolons that appear outside
+/// single-quoted string literals and `--` line comments.
+///
+/// Handles:
+/// - Single-quoted strings (`'...'`), including escaped quotes (`''`)
+/// - `--` line comments (to end of line)
+/// - Dollar-quoted strings are not parsed; avoid bare `;` inside `$$...$$` blocks.
+///
+/// ponytail: handles every pattern present in our DDL/DML migrations; a full SQL parser
+/// would be a heavy dependency for this narrow use case. Ceiling: dollar-quoted bodies
+/// containing bare semicolons — upgrade path is a real parser (e.g. `pg_query`).
+fn split_statements(sql: &str) -> Vec<String> {
+    let mut stmts: Vec<String> = Vec::new();
+    let mut current = String::new();
+    let chars: Vec<char> = sql.chars().collect();
+    let mut i = 0;
+
+    while i < chars.len() {
+        let c = chars[i];
+
+        if c == '-' && i + 1 < chars.len() && chars[i + 1] == '-' {
+            // Line comment: consume until newline.
+            while i < chars.len() && chars[i] != '\n' {
+                current.push(chars[i]);
+                i += 1;
+            }
+        } else if c == '\'' {
+            // Single-quoted string: consume until closing quote, handling '' escapes.
+            current.push(c);
+            i += 1;
+            loop {
+                if i >= chars.len() {
+                    break;
+                }
+                let qc = chars[i];
+                current.push(qc);
+                i += 1;
+                if qc == '\'' {
+                    // Check for escaped quote ('').
+                    if i < chars.len() && chars[i] == '\'' {
+                        current.push(chars[i]);
+                        i += 1;
+                    } else {
+                        break;
+                    }
+                }
+            }
+        } else if c == ';' {
+            let trimmed = current.trim().to_owned();
+            if !trimmed.is_empty()
+                && !trimmed
+                    .lines()
+                    .all(|l| l.trim().is_empty() || l.trim().starts_with("--"))
+            {
+                stmts.push(trimmed);
+            }
+            current.clear();
+            i += 1;
+        } else {
+            current.push(c);
+            i += 1;
+        }
+    }
+
+    // Trailing content after the last semicolon (should be empty for well-formed SQL).
+    let trimmed = current.trim().to_owned();
+    if !trimmed.is_empty()
+        && !trimmed
+            .lines()
+            .all(|l| l.trim().is_empty() || l.trim().starts_with("--"))
+    {
+        stmts.push(trimmed);
+    }
+
+    stmts
+}
+
 /// Configuration for the Postgres driver.
 #[derive(Debug, Clone)]
 pub struct PostgresConfig {
@@ -157,13 +234,15 @@ impl MigrationDriver for PostgresDriver {
                     source: e,
                 })?;
         }
-        sqlx::query(sql)
-            .execute(&mut *tx)
-            .await
-            .map_err(|e| Error::SetupFailed {
-                file: name.to_owned(),
-                source: e,
-            })?;
+        for stmt in split_statements(sql) {
+            sqlx::query(&stmt)
+                .execute(&mut *tx)
+                .await
+                .map_err(|e| Error::SetupFailed {
+                    file: name.to_owned(),
+                    source: e,
+                })?;
+        }
         tx.commit().await.map_err(|e| Error::SetupFailed {
             file: name.to_owned(),
             source: e,
@@ -262,7 +341,9 @@ impl MigrationDriver for PostgresDriver {
         if let Some(sp) = self.set_search_path_sql() {
             sqlx::query(&sp).execute(&mut *tx).await?;
         }
-        sqlx::query(up_sql).execute(&mut *tx).await?;
+        for stmt in split_statements(up_sql) {
+            sqlx::query(&stmt).execute(&mut *tx).await?;
+        }
         let elapsed_ms = start.elapsed().as_millis() as i32;
         let qt = self.qualified_table();
         let insert = format!(
@@ -288,7 +369,9 @@ impl MigrationDriver for PostgresDriver {
         if let Some(sp) = self.set_search_path_sql() {
             sqlx::query(&sp).execute(&mut *tx).await?;
         }
-        sqlx::query(down_sql).execute(&mut *tx).await?;
+        for stmt in split_statements(down_sql) {
+            sqlx::query(&stmt).execute(&mut *tx).await?;
+        }
         let qt = self.qualified_table();
         let delete = format!("DELETE FROM {qt} WHERE version = $1 AND file = $2");
         sqlx::query(&delete)

@@ -32,3 +32,18 @@ versions:
         created: "2026-02-01"
         author: "soma"
         why: "Add optional description to projects after initial launch — nullable so existing rows need no backfill"
+  - version: 3
+    description: "Seed data — sample organizations, users, memberships, projects, environments, and secrets"
+    migrations:
+      - file: "20260301_01_seed_orgs_users.sql"
+        created: "2026-03-01"
+        author: "soma"
+        why: "Seed two sample organizations and users with fixed UUIDs for repeatable demos"
+      - file: "20260301_02_seed_memberships_projects.sql"
+        created: "2026-03-01"
+        author: "soma"
+        why: "Seed memberships and projects linking sample orgs and users"
+      - file: "20260301_03_seed_environments_secrets.sql"
+        created: "2026-03-01"
+        author: "soma"
+        why: "Seed environments and placeholder secrets for each sample project"

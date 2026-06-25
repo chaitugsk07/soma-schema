@@ -42,6 +42,8 @@ DELETE FROM myapp.reference_data WHERE code IN ('USD', 'EUR');
 
 Using `ON CONFLICT DO NOTHING` (or `INSERT OR IGNORE` on SQLite) means the seed can be safely re-run after a rollback.
 
+See `examples/showcase` version 3 for a complete working example with FK-consistent seed data.
+
 ## File naming
 
 soma-schema does not impose a file naming convention. The `migration-order.yaml` manifest is the authoritative apply order — filename sort is not used. That said, `<YYYYMMDD>_<NN>_<name>.sql` keeps the directory visually sorted and avoids collisions when multiple developers add migrations on the same day.

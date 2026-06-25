@@ -13,6 +13,7 @@
           "created": "2026-01-01",
           "author": "soma",
           "why": "Establish the organizations table as the root tenant boundary — every other object belongs to an org",
+          "is_seed": false,
           "up_sql": "CREATE TABLE vault.organizations (\n    id         uuid        NOT NULL DEFAULT gen_random_uuid(),\n    name       text        NOT NULL,\n    slug       text        NOT NULL,\n    created_at timestamptz NOT NULL DEFAULT now(),\n    CONSTRAINT organizations_pkey PRIMARY KEY (id),\n    CONSTRAINT organizations_slug_key UNIQUE (slug)\n);\n",
           "down_sql": "DROP TABLE IF EXISTS vault.organizations;"
         },
@@ -25,6 +26,7 @@
           "created": "2026-01-01",
           "author": "soma",
           "why": "Users are identity records; they join orgs via memberships rather than being owned by one org",
+          "is_seed": false,
           "up_sql": "CREATE TABLE vault.users (\n    id         uuid        NOT NULL DEFAULT gen_random_uuid(),\n    email      text        NOT NULL,\n    name       text        NOT NULL,\n    created_at timestamptz NOT NULL DEFAULT now(),\n    CONSTRAINT users_pkey PRIMARY KEY (id),\n    CONSTRAINT users_email_key UNIQUE (email)\n);\n",
           "down_sql": "DROP TABLE IF EXISTS vault.users;"
         },
@@ -37,6 +39,7 @@
           "created": "2026-01-01",
           "author": "soma",
           "why": "Membership links users to orgs with a role; projects are the top-level work units owned by an org",
+          "is_seed": false,
           "up_sql": "CREATE TABLE vault.organization_memberships (\n    id         uuid        NOT NULL DEFAULT gen_random_uuid(),\n    org_id     uuid        NOT NULL REFERENCES vault.organizations (id),\n    user_id    uuid        NOT NULL REFERENCES vault.users (id),\n    role       text        NOT NULL,\n    created_at timestamptz NOT NULL DEFAULT now(),\n    CONSTRAINT organization_memberships_pkey PRIMARY KEY (id)\n);\n\nCREATE TABLE vault.projects (\n    id         uuid        NOT NULL DEFAULT gen_random_uuid(),\n    org_id     uuid        NOT NULL REFERENCES vault.organizations (id),\n    name       text        NOT NULL,\n    created_at timestamptz NOT NULL DEFAULT now(),\n    CONSTRAINT projects_pkey PRIMARY KEY (id)\n);\n",
           "down_sql": "DROP TABLE IF EXISTS vault.projects;\nDROP TABLE IF EXISTS vault.organization_memberships;"
         },
@@ -49,6 +52,7 @@
           "created": "2026-01-01",
           "author": "soma",
           "why": "Environments scope secrets to a deployment target (dev/staging/prod) within a project",
+          "is_seed": false,
           "up_sql": "CREATE TABLE vault.environments (\n    id         uuid        NOT NULL DEFAULT gen_random_uuid(),\n    project_id uuid        NOT NULL REFERENCES vault.projects (id),\n    name       text        NOT NULL,\n    created_at timestamptz NOT NULL DEFAULT now(),\n    CONSTRAINT environments_pkey PRIMARY KEY (id)\n);\n\nCREATE TABLE vault.secrets (\n    id             uuid        NOT NULL DEFAULT gen_random_uuid(),\n    environment_id uuid        NOT NULL REFERENCES vault.environments (id),\n    key            text        NOT NULL,\n    value          text        NOT NULL,\n    created_at     timestamptz NOT NULL DEFAULT now(),\n    CONSTRAINT secrets_pkey PRIMARY KEY (id)\n);\n",
           "down_sql": "DROP TABLE IF EXISTS vault.secrets;\nDROP TABLE IF EXISTS vault.environments;"
         }
@@ -66,6 +70,7 @@
           "created": "2026-02-01",
           "author": "soma",
           "why": "Audit logs provide a tamper-evident trail of org actions; API keys enable machine authentication scoped to an org",
+          "is_seed": false,
           "up_sql": "CREATE TABLE vault.audit_logs (\n    id         uuid        NOT NULL DEFAULT gen_random_uuid(),\n    org_id     uuid        NOT NULL,\n    user_id    uuid        NOT NULL,\n    action     text        NOT NULL,\n    created_at timestamptz NOT NULL DEFAULT now(),\n    CONSTRAINT audit_logs_pkey PRIMARY KEY (id)\n);\n\nALTER TABLE vault.audit_logs\n    ADD CONSTRAINT audit_logs_org_id_fkey\n    FOREIGN KEY (org_id) REFERENCES vault.organizations (id);\n\nALTER TABLE vault.audit_logs\n    ADD CONSTRAINT audit_logs_user_id_fkey\n    FOREIGN KEY (user_id) REFERENCES vault.users (id);\n\nCREATE TABLE vault.api_keys (\n    id         uuid        NOT NULL DEFAULT gen_random_uuid(),\n    org_id     uuid        NOT NULL REFERENCES vault.organizations (id),\n    name       text        NOT NULL,\n    hash       text        NOT NULL,\n    created_at timestamptz NOT NULL DEFAULT now(),\n    CONSTRAINT api_keys_pkey PRIMARY KEY (id)\n);\n",
           "down_sql": "DROP TABLE IF EXISTS vault.api_keys;\nDROP TABLE IF EXISTS vault.audit_logs;"
         },
@@ -78,8 +83,53 @@
           "created": "2026-02-01",
           "author": "soma",
           "why": "Add optional description to projects after initial launch — nullable so existing rows need no backfill",
+          "is_seed": false,
           "up_sql": "ALTER TABLE vault.projects ADD COLUMN description text;\n",
           "down_sql": "ALTER TABLE vault.projects DROP COLUMN IF EXISTS description;"
+        }
+      ]
+    },
+    {
+      "version": 3,
+      "migrations": [
+        {
+          "order_index": 6,
+          "version": 3,
+          "file": "20260301_01_seed_orgs_users.sql",
+          "name": "20260301_01_seed_orgs_users",
+          "checksum": "ad4d9e3e19d655697de08936190c8ddf105a527a8f1a163df380fac57b87dfdd",
+          "created": "2026-03-01",
+          "author": "soma",
+          "why": "Seed two sample organizations and users with fixed UUIDs for repeatable demos",
+          "is_seed": true,
+          "up_sql": "-- UP: Seed two sample organizations and two users.\n-- Seeds use fixed UUIDs so FKs resolve and ON CONFLICT makes re-runs safe.\nINSERT INTO vault.organizations (id, name, slug)\nVALUES\n    ('00000000-0000-0000-0000-0000000000a1', 'Acme Corp',  'acme'),\n    ('00000000-0000-0000-0000-0000000000a2', 'Globex Inc', 'globex')\nON CONFLICT (id) DO NOTHING;\n\nINSERT INTO vault.users (id, email, name)\nVALUES\n    ('00000000-0000-0000-0000-0000000000b1', 'alice@acme.example', 'Alice Nguyen'),\n    ('00000000-0000-0000-0000-0000000000b2', 'bob@globex.example', 'Bob Patel')\nON CONFLICT (id) DO NOTHING;\n",
+          "down_sql": "DELETE FROM vault.users WHERE id IN (\n    '00000000-0000-0000-0000-0000000000b1',\n    '00000000-0000-0000-0000-0000000000b2'\n);\nDELETE FROM vault.organizations WHERE id IN (\n    '00000000-0000-0000-0000-0000000000a1',\n    '00000000-0000-0000-0000-0000000000a2'\n);"
+        },
+        {
+          "order_index": 7,
+          "version": 3,
+          "file": "20260301_02_seed_memberships_projects.sql",
+          "name": "20260301_02_seed_memberships_projects",
+          "checksum": "9fb24ee2c23b80d3844859fe52e97bdfa1293f7b48c242319aabf302585e48c7",
+          "created": "2026-03-01",
+          "author": "soma",
+          "why": "Seed memberships and projects linking sample orgs and users",
+          "is_seed": true,
+          "up_sql": "-- UP: Seed memberships and projects linking orgs and users.\nINSERT INTO vault.organization_memberships (id, org_id, user_id, role)\nVALUES\n    ('00000000-0000-0000-0000-0000000000c1',\n     '00000000-0000-0000-0000-0000000000a1',\n     '00000000-0000-0000-0000-0000000000b1',\n     'owner'),\n    ('00000000-0000-0000-0000-0000000000c2',\n     '00000000-0000-0000-0000-0000000000a2',\n     '00000000-0000-0000-0000-0000000000b2',\n     'admin')\nON CONFLICT (id) DO NOTHING;\n\nINSERT INTO vault.projects (id, org_id, name, description)\nVALUES\n    ('00000000-0000-0000-0000-0000000000d1',\n     '00000000-0000-0000-0000-0000000000a1',\n     'Launchpad', 'Main product project'),\n    ('00000000-0000-0000-0000-0000000000d2',\n     '00000000-0000-0000-0000-0000000000a2',\n     'Reactor',   'Internal tooling')\nON CONFLICT (id) DO NOTHING;\n",
+          "down_sql": "DELETE FROM vault.projects WHERE id IN (\n    '00000000-0000-0000-0000-0000000000d1',\n    '00000000-0000-0000-0000-0000000000d2'\n);\nDELETE FROM vault.organization_memberships WHERE id IN (\n    '00000000-0000-0000-0000-0000000000c1',\n    '00000000-0000-0000-0000-0000000000c2'\n);"
+        },
+        {
+          "order_index": 8,
+          "version": 3,
+          "file": "20260301_03_seed_environments_secrets.sql",
+          "name": "20260301_03_seed_environments_secrets",
+          "checksum": "68ebce6d3efd2764b855ef0f114aa21c315e05319509c565db58d7b89b88fb05",
+          "created": "2026-03-01",
+          "author": "soma",
+          "why": "Seed environments and placeholder secrets for each sample project",
+          "is_seed": true,
+          "up_sql": "-- UP: Seed environments and secrets for the sample projects.\nINSERT INTO vault.environments (id, project_id, name)\nVALUES\n    ('00000000-0000-0000-0000-0000000000e1',\n     '00000000-0000-0000-0000-0000000000d1',\n     'production'),\n    ('00000000-0000-0000-0000-0000000000e2',\n     '00000000-0000-0000-0000-0000000000d2',\n     'staging')\nON CONFLICT (id) DO NOTHING;\n\nINSERT INTO vault.secrets (id, environment_id, key, value)\nVALUES\n    ('00000000-0000-0000-0000-0000000000f1',\n     '00000000-0000-0000-0000-0000000000e1',\n     'DATABASE_URL', 'postgres://placeholder/prod'),\n    ('00000000-0000-0000-0000-0000000000f2',\n     '00000000-0000-0000-0000-0000000000e2',\n     'STRIPE_KEY',   'sk_test_placeholder')\nON CONFLICT (id) DO NOTHING;\n",
+          "down_sql": "DELETE FROM vault.secrets WHERE id IN (\n    '00000000-0000-0000-0000-0000000000f1',\n    '00000000-0000-0000-0000-0000000000f2'\n);\nDELETE FROM vault.environments WHERE id IN (\n    '00000000-0000-0000-0000-0000000000e1',\n    '00000000-0000-0000-0000-0000000000e2'\n);"
         }
       ]
     }
@@ -120,9 +170,45 @@
       "version": 2,
       "file": "20260201_02_project_description.sql",
       "name": "20260201_02_project_description"
+    },
+    {
+      "order_index": 6,
+      "version": 3,
+      "file": "20260301_01_seed_orgs_users.sql",
+      "name": "20260301_01_seed_orgs_users"
+    },
+    {
+      "order_index": 7,
+      "version": 3,
+      "file": "20260301_02_seed_memberships_projects.sql",
+      "name": "20260301_02_seed_memberships_projects"
+    },
+    {
+      "order_index": 8,
+      "version": 3,
+      "file": "20260301_03_seed_environments_secrets.sql",
+      "name": "20260301_03_seed_environments_secrets"
     }
   ],
   "rollback_order": [
+    {
+      "order_index": 8,
+      "version": 3,
+      "file": "20260301_03_seed_environments_secrets.sql",
+      "name": "20260301_03_seed_environments_secrets"
+    },
+    {
+      "order_index": 7,
+      "version": 3,
+      "file": "20260301_02_seed_memberships_projects.sql",
+      "name": "20260301_02_seed_memberships_projects"
+    },
+    {
+      "order_index": 6,
+      "version": 3,
+      "file": "20260301_01_seed_orgs_users.sql",
+      "name": "20260301_01_seed_orgs_users"
+    },
     {
       "order_index": 5,
       "version": 2,

@@ -275,10 +275,8 @@ dependencies = [
 name = "explorer-data"
 version = "0.1.0"
 dependencies = [
- "serde",
  "serde_json",
  "soma-schema",
- "sqlparser",
 ]
 
 [[package]]
@@ -1165,12 +1163,14 @@ dependencies = [
 
 [[package]]
 name = "soma-schema"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "async-trait",
  "serde",
+ "serde_json",
  "serde_yml",
  "sha2",
+ "sqlparser",
  "sqlx",
  "thiserror",
  "tokio",

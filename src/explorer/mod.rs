@@ -24,6 +24,7 @@ struct MigrationEntry {
     created: Option<String>,
     author: Option<String>,
     why: Option<String>,
+    is_seed: bool,
     up_sql: String,
     down_sql: Option<String>,
 }
@@ -449,6 +450,29 @@ fn compute_layout(tables: &BTreeMap<String, TableBuf>) -> HashMap<String, (i64, 
     positions
 }
 
+/// Returns true if the SQL contains only data statements (≥1 INSERT, no DDL).
+fn is_seed_sql(sql: &str) -> bool {
+    let dialect = PostgreSqlDialect {};
+    let stmts = match Parser::parse_sql(&dialect, sql) {
+        Ok(s) => s,
+        Err(_) => return false,
+    };
+    if stmts.is_empty() {
+        return false;
+    }
+    let mut has_insert = false;
+    for stmt in &stmts {
+        match stmt {
+            Statement::Insert(_) => has_insert = true,
+            Statement::CreateTable(_) | Statement::AlterTable { .. } | Statement::Drop { .. } => {
+                return false;
+            }
+            _ => {}
+        }
+    }
+    has_insert
+}
+
 /// Build the `Output` struct from `root`, serialise to pretty JSON.
 pub fn build_json(root: &Path) -> crate::Result<String> {
     let (migrations, setup_files) = crate::discover(root)?;
@@ -472,6 +496,7 @@ pub fn build_json(root: &Path) -> crate::Result<String> {
             created: m.created.clone(),
             author: m.author.clone(),
             why: m.why.clone(),
+            is_seed: is_seed_sql(&m.up()),
             up_sql: m.up(),
             down_sql: m.down(),
         });
