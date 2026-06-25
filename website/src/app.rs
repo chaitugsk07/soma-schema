@@ -7,11 +7,47 @@ use leptos_router::{
 use soma_ui::{ThemeToggle, STYLES};
 use crate::pages::{landing::LandingPage, explorer::ExplorerPage};
 
+/// Read the pathname from the document's `<base href="...">` element, normalized
+/// for use as a leptos_router base (no trailing slash; empty string for root `/`).
+/// Falls back to `""` if there is no base element or it can't be read.
+///
+/// Trunk sets `<base href="/soma-schema/">` for GitHub Pages builds and
+/// `<base href="/">` for local dev; the router base strips the trailing slash
+/// so routes defined as `/` and `/explorer` match correctly under both.
+fn router_base() -> std::borrow::Cow<'static, str> {
+    let base = (|| -> Option<String> {
+        let doc = document();
+        let el = doc.query_selector("base").ok()??;
+        // HtmlBaseElement.href() returns the resolved absolute URL; fall back to
+        // the raw attribute (a root-relative path) if the cast isn't needed.
+        let href = {
+            use web_sys::wasm_bindgen::JsCast;
+            if let Ok(base_el) = el.clone().dyn_into::<web_sys::HtmlBaseElement>() {
+                base_el.href()
+            } else {
+                el.get_attribute("href").unwrap_or_default()
+            }
+        };
+        // If Trunk injects an absolute URL (e.g. https://host/soma-schema/), extract
+        // just the pathname; if it's already root-relative, use it directly.
+        let path = if let Some(after) = href.strip_prefix("http://").or_else(|| href.strip_prefix("https://")) {
+            // skip host, keep from the first '/' onward
+            after.find('/').map(|i| after[i..].to_string()).unwrap_or_default()
+        } else {
+            href
+        };
+        // Strip trailing slash; a lone "/" becomes "".
+        Some(path.trim_end_matches('/').to_string())
+    })();
+    std::borrow::Cow::Owned(base.unwrap_or_default())
+}
+
 #[component]
 pub fn App() -> impl IntoView {
+    let base = router_base();
     view! {
         <style>{STYLES}</style>
-        <Router>
+        <Router base=base>
             <div class="flex flex-col min-h-screen page-atmosphere">
                 <Nav />
                 <main class="flex-1">
