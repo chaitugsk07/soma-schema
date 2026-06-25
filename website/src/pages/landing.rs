@@ -28,7 +28,7 @@ pub fn LandingPage() -> impl IntoView {
                             "\u{a0}the drift."
                         </h1>
                         <p class="hero-subtitle mt-5">
-                            "Drop one block into your AGENTS.md and any agent \u{2014} Claude, Cursor, Copilot \u{2014} writes correct migrations: proper UP/DOWN, the manifest entry, FK-safe order, and it never edits a shipped file."
+                            "Drop one block into your AGENTS.md and any agent \u{2014} Claude, Cursor, Copilot \u{2014} follows the conventions (UP/DOWN, the manifest entry, FK-safe order). Agents slip; soma-schema\u{2019}s guardrails catch it \u{2014} checksum drift, bad ordering, editing a shipped file."
                         </p>
                         <div class="hero-ctas flex flex-wrap gap-3 mt-8">
                             <a
@@ -100,7 +100,7 @@ pub fn LandingPage() -> impl IntoView {
                             "I build a lot with AI coding agents now, and the database layer is where it kept falling apart. The agent would write a migration that ran out of order, edit one that was already applied, skip the rollback, or quietly break a foreign-key drop \u{2014} and nothing I tried was built for that workflow. Every migration tool assumed a human typing commands, not an agent generating SQL."
                         </p>
                         <p>
-                            "So I built the one I wanted: migrations an agent can\u{2019}t get wrong, the rules it needs written down (drop an AGENTS.md in and it follows them), and a visual explorer so I can actually see the schema and seed data it produced. soma-schema is the schema tool I wish I\u{2019}d had when I started building with agents."
+                            "So I built the one I wanted: the rules an agent needs written down (drop an AGENTS.md in and it follows them), guardrails that catch the mistakes it still makes \u{2014} a changed file that was already applied, broken ordering, a missing rollback \u{2014} before they reach the database, and a visual explorer so I can actually see the schema and seed data it produced. Agents are non-deterministic; soma-schema is the safety net I wish I\u{2019}d had when I started building with them."
                         </p>
                     </div>
                 </div>
@@ -116,7 +116,7 @@ pub fn LandingPage() -> impl IntoView {
                         <span class="section-eyebrow ai-native-eyebrow">"AI-native"</span>
                         <h2 class="section-title">"Your agent writes the migrations"</h2>
                         <p class="ai-native-lead">
-                            "Drop these rules into your agent\u{2019}s instructions file and it generates correct migrations on its own \u{2014} proper UP/DOWN, the manifest entry, FK-safe order, and it never edits an already-applied file. Works with any agentic coding tool: Claude Code, OpenAI Codex, Cursor, Windsurf, GitHub Copilot, Google Antigravity, Aider, and more."
+                            "Drop these rules into your agent\u{2019}s instructions file and it follows the conventions on its own \u{2014} proper UP/DOWN, the manifest entry, FK-safe order. Agents are non-deterministic, so soma-schema also enforces the invariants: it errors on checksum drift if an applied file changes, rejects out-of-order or orphaned migrations, and keeps rollback FK-safe. Works with any agentic coding tool: Claude Code, OpenAI Codex, Cursor, Windsurf, GitHub Copilot, Google Antigravity, Aider, and more."
                         </p>
                         <div class="mt-6">
                             <CodeBlock
@@ -407,7 +407,7 @@ pub fn LandingPage() -> impl IntoView {
                     <div class="why-card">
                         <p class="why-card-title">"AI-native"</p>
                         <p class="why-card-body">
-                            "Ships ready-to-paste agent rules and a Claude skill, so your agent generates correct migrations on its own instead of guessing \u{2014} re-ordering, forgetting the DOWN, editing a shipped file."
+                            "Ships ready-to-paste agent rules and a Claude skill so your agent follows the conventions instead of guessing \u{2014} and when it still slips (re-ordering, forgetting the DOWN, editing a shipped file), the checks catch it."
                         </p>
                     </div>
                     <div class="why-card">

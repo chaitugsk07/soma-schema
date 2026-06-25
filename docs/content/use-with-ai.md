@@ -1,10 +1,10 @@
 +++
 title = "Use with AI agents"
-description = "Drop-in rules so any agentic coding tool generates correct soma-schema migrations automatically."
+description = "Drop-in rules so any agentic coding tool follows the soma-schema migration conventions, with runner guardrails that catch what a non-deterministic agent gets wrong."
 weight = 15
 +++
 
-soma-schema is AI-native. It works with any agentic coding tool — Claude Code, OpenAI Codex, Cursor, Windsurf, GitHub Copilot, Google Antigravity, Aider, and more. It ships ready-to-paste agent rules that teach the agent exactly how migrations work here — correct UP/DOWN sections, the manifest entry, FK-safe order — and, critically, that it must never edit a file that has already been applied. Two minutes of setup means the agent gets it right the first time.
+soma-schema is AI-native. It works with any agentic coding tool — Claude Code, OpenAI Codex, Cursor, Windsurf, GitHub Copilot, Google Antigravity, Aider, and more. It ships ready-to-paste agent rules that teach the agent exactly how migrations work here — correct UP/DOWN sections, the manifest entry, FK-safe order — and, critically, that it must never edit a file that has already been applied. Two minutes of setup means the agent follows the conventions from the first try, and soma-schema's checks (checksum drift, ordering, never editing an applied file) catch anything a non-deterministic agent still gets wrong.
 
 ## Step 1 — add the rules to your agent's rules file
 

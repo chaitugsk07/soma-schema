@@ -8,7 +8,7 @@ Flyway, Liquibase, sqlx-migrate, Alembic — all built for humans typing command
 
 ### AI-native by default
 
-soma-schema ships agent rules and a Claude skill so an AI coding agent generates correct migrations from the start — proper UP/DOWN sections, manifest entries, FK-safe order — rather than guessing a convention and getting corrected. The rules are small enough to paste into a `CLAUDE.md`; no boilerplate required on the human's side.
+soma-schema ships agent rules and a Claude skill so an AI coding agent follows the conventions from the start — proper UP/DOWN sections, manifest entries, FK-safe order — instead of guessing. Agents are non-deterministic, so the runner also enforces the invariants (checksum drift detection, orphan/missing checks, FK-safe rollback) to catch the mistakes that slip through. The rules are small enough to paste into a `CLAUDE.md`.
 
 ### Explicit order, not filenames
 

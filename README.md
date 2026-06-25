@@ -55,7 +55,7 @@ The binary requires the `cli` feature, which is on by default.
 
 ## AI-native: your agent writes the migrations
 
-Traditional migration tools (Flyway, Liquibase, sqlx-migrate) were built for humans typing commands. soma-schema ships the agent contract so your AI writes correct migrations from the start.
+Traditional migration tools (Flyway, Liquibase, sqlx-migrate) were built for humans typing commands. soma-schema ships the agent contract so your AI follows the conventions from the start, and because agents are non-deterministic, the runner enforces the invariants (checksum drift, FK-safe ordering, never editing an applied file) to catch the mistakes it still makes.
 
 Paste this block into your repo's `AGENTS.md` or `CLAUDE.md` (works with any agent — Claude, Cursor, Copilot, etc.):
 
