@@ -28,6 +28,12 @@ allow = [
     "ISC",
     "Unicode-3.0",
     "Unicode-DFS-2016",
+    # foldhash (via sqlx → hashbrown/hashlink) is Zlib-licensed.
+    "Zlib",
+    # webpki-roots (via sqlx TLS) ships the Mozilla CA bundle under CDLA-Permissive-2.0.
+    "CDLA-Permissive-2.0",
+    "MPL-2.0",
+    "BSL-1.0",
     # ring uses OpenSSL-like license; rustls/sqlx pull it in via aws-lc-rs/ring
     "OpenSSL",
 ]
