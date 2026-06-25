@@ -40,7 +40,7 @@ pub fn LandingPage() -> impl IntoView {
                             >
                                 "cargo add soma-schema"
                             </a>
-                            <A href="/explorer" attr:class="btn-ghost">
+                            <A href=crate::app::app_url("/explorer") attr:class="btn-ghost">
                                 "Explore migrations \u{2192}"
                             </A>
                         </div>

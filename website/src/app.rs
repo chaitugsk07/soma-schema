@@ -42,6 +42,15 @@ pub(crate) fn router_base() -> std::borrow::Cow<'static, str> {
     std::borrow::Cow::Owned(base.unwrap_or_default())
 }
 
+/// Build a root-relative URL for an in-app route, prepending the router base.
+///
+/// `path` is a leading-slash route like `/` or `/explorer`.
+/// On GitHub Pages: `app_url("/explorer")` → `/soma-schema/explorer`.
+/// Locally (base = `""`): `app_url("/explorer")` → `/explorer`.
+pub(crate) fn app_url(path: &str) -> String {
+    format!("{}{}", router_base(), path)
+}
+
 /// Build a URL to a page in the separate static docs site.
 ///
 /// `rel` is a path relative to the docs root, e.g. `""` or `"use-with-ai/"`.
@@ -117,10 +126,14 @@ fn SiteFooter() -> impl IntoView {
 #[component]
 fn NavLink(href: &'static str, label: &'static str) -> impl IntoView {
     let location = use_location();
+    // Compute the base-aware href once (non-reactive; router_base is static).
+    let full_href = app_url(href);
     view! {
         <A
-            href=href
+            href=full_href
             attr:class=move || {
+                // use_location().pathname is base-stripped by leptos_router,
+                // so compare against the original relative `href`.
                 let path = location.pathname.get();
                 let is_active = if href == "/" {
                     path == "/"
@@ -141,7 +154,7 @@ fn Nav() -> impl IntoView {
     view! {
         <header class="site-nav">
             <div class="landing-container flex items-center justify-between py-3">
-                <A href="/" attr:class="nav-logo">
+                <A href=app_url("/") attr:class="nav-logo">
                     <span class="nav-logo-mark" aria-hidden="true">"ss"</span>
                     "soma-schema"
                 </A>
