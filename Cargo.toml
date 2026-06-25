@@ -1,6 +1,6 @@
 [package]
 name = "soma-schema"
-version = "0.2.1"
+version = "0.3.0"
 edition = "2021"
 description = "A standalone, reusable SQL migration tool — plain SQL files with UP/DOWN, version tracking, and advisory-lock safety. Postgres first, designed multi-DB."
 license = "Apache-2.0"
@@ -68,6 +68,9 @@ clap = { version = "4", features = ["derive", "env"], optional = true }
 [dev-dependencies]
 tempfile = "3"
 uuid = { version = "1", features = ["v4"] }
+
+[profile.dev]
+debug = false        # no debuginfo in dev builds — keeps target/ small; backtraces still show panic messages
 
 [profile.release]
 opt-level = "z"

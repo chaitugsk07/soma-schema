@@ -4,7 +4,7 @@ mod cli {
     use sqlx::postgres::PgPoolOptions;
     use std::path::PathBuf;
 
-    use soma_schema::{Migrator, PostgresConfig, PostgresDriver};
+    use soma_schema::{Migrator, PostgresConfig, PostgresDriver, RulesTarget};
 
     #[derive(Parser)]
     #[command(
@@ -40,12 +40,62 @@ mod cli {
         Json,
     }
 
+    /// Which agent-rules file(s) `init` should write into the current directory.
+    #[derive(clap::ValueEnum, Clone, Debug, Default)]
+    enum RulesMode {
+        /// Write `AGENTS.md` (works with Claude Code, OpenAI Codex, Cursor, Zed, …)
+        #[default]
+        Agents,
+        /// Write `CLAUDE.md`
+        Claude,
+        /// Write `.cursor/rules/soma-schema.mdc`
+        Cursor,
+        /// Write `.windsurf/rules/soma-schema.md`
+        Windsurf,
+        /// Write all of the above
+        All,
+        /// Skip rules writing
+        None,
+    }
+
+    impl From<&RulesMode> for RulesTarget {
+        fn from(m: &RulesMode) -> Self {
+            match m {
+                RulesMode::Agents => RulesTarget::Agents,
+                RulesMode::Claude => RulesTarget::Claude,
+                RulesMode::Cursor => RulesTarget::Cursor,
+                RulesMode::Windsurf => RulesTarget::Windsurf,
+                RulesMode::All => RulesTarget::All,
+                RulesMode::None => RulesTarget::None,
+            }
+        }
+    }
+
     #[derive(Subcommand)]
     enum Command {
-        /// Scaffold a new migrations root directory with a starter layout.
+        /// Scaffold a new migrations root directory with a starter layout,
+        /// then write agent-rules into the current directory so any AI agent
+        /// knows the soma-schema conventions.
+        ///
+        /// One command delivers: migrations/ directory + runnable example +
+        /// AGENTS.md with the canonical rules. Then: set DATABASE_URL and run
+        /// `soma-schema up`.
         Init {
-            /// Directory to initialise. Defaults to --migrations value.
+            /// Directory to initialise (default: "migrations").
             dir: Option<PathBuf>,
+            /// Which agent-rules file(s) to write into CWD (default: agents → AGENTS.md).
+            /// If the target file already exists, the rules section is appended
+            /// idempotently — existing content is never clobbered.
+            #[arg(long, default_value = "agents")]
+            rules: RulesMode,
+            /// Also install the /soma-schema Claude skill to
+            /// ~/.claude/skills/soma-schema/SKILL.md.
+            #[arg(long)]
+            skill: bool,
+            /// Open the visual explorer after scaffolding (requires the `explorer`
+            /// feature; prints a hint when the feature is disabled).
+            #[arg(long)]
+            explore: bool,
         },
         /// Apply all pending migrations.
         Up,
@@ -73,10 +123,60 @@ mod cli {
     pub async fn run() -> Result<(), Box<dyn std::error::Error>> {
         let cli = Cli::parse();
 
-        if let Command::Init { dir } = &cli.command {
+        if let Command::Init {
+            dir,
+            rules,
+            skill,
+            explore,
+        } = &cli.command
+        {
             let root = dir.as_ref().unwrap_or(&cli.migrations);
             Migrator::scaffold(root)?;
-            println!("Initialised migrations root at: {}", root.display());
+            println!("Migrations directory:  {}", root.display());
+
+            // Write agent-rules into CWD.
+            let target = RulesTarget::from(rules);
+            let cwd = std::env::current_dir()?;
+            let rule_msgs = soma_schema::write_rules(&cwd, &target)?;
+            for msg in &rule_msgs {
+                println!("Agent rules:           {msg}");
+            }
+
+            // Optionally install the Claude skill.
+            if *skill {
+                let skill_msg = soma_schema::install_skill()?;
+                println!("Claude skill:          {skill_msg}");
+            }
+
+            // Optionally open the explorer.
+            if *explore {
+                #[cfg(feature = "explorer")]
+                {
+                    let html = soma_schema::explorer::render_html(root)?;
+                    let path = std::env::temp_dir().join("soma-schema-explorer.html");
+                    std::fs::write(&path, &html)?;
+                    eprintln!("Wrote explorer to {}", path.display());
+                    let result = open_in_browser(&path);
+                    if result.is_err() {
+                        eprintln!("Open this file in your browser: {}", path.display());
+                    }
+                }
+                #[cfg(not(feature = "explorer"))]
+                {
+                    println!(
+                        "Tip: run `soma-schema explorer` once you have installed the binary \
+                         with the `explorer` feature (default)."
+                    );
+                }
+            }
+
+            println!();
+            println!("Next steps:");
+            println!("  1. Set DATABASE_URL (or pass --database-url)");
+            println!("  2. soma-schema up          — apply the example migration");
+            println!("  3. soma-schema status       — verify");
+            println!("  4. soma-schema explorer     — open the visual UI");
+
             return Ok(());
         }
 
@@ -138,7 +238,9 @@ mod cli {
         let migrator = Migrator::from_root(&cli.migrations);
 
         match &cli.command {
-            Command::Init { .. } | Command::Explorer { .. } => unreachable!(),
+            Command::Init { .. } | Command::Explorer { .. } => {
+                unreachable!("handled above")
+            }
             Command::Up => {
                 migrator.up(&driver).await?;
                 println!("All pending migrations applied.");

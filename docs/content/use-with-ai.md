@@ -103,10 +103,10 @@ should disable it:
     soma-schema = { path = "../soma-schema", default-features = false }
 
     # Pinned git tag:
-    soma-schema = { git = "https://github.com/chaitugsk07/soma-schema", tag = "v0.2.0", default-features = false }
+    soma-schema = { git = "https://github.com/chaitugsk07/soma-schema", tag = "v0.3.0", default-features = false }
 
-    # crates.io (once published):
-    soma-schema = { version = "0.2", default-features = false }
+    # crates.io:
+    soma-schema = { version = "0.3", default-features = false }
 
 Keep default-features = true only if you also need the soma-schema CLI binary built from
 this dep. Embedding the library at startup is the norm; always set default-features = false

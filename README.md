@@ -30,11 +30,33 @@ Most Rust migration tools order migrations by filename sort and hash only the UP
 
 ## Install
 
+One command installs the CLI and wires up your project for migrations:
+
+```sh
+cargo install soma-schema && soma-schema init
+```
+
+This creates:
+
+- `migrations/` — directory with `migration-order.yaml`, idempotent bootstrap SQL in `00_setup/`, and a runnable example migration in `01_migrated/1/` already listed in the manifest.
+- `AGENTS.md` — agent-rules file at the repo root so any AI coding agent follows the soma-schema conventions from the first prompt.
+
+**`init` flags:**
+
+| Flag | Default | Description |
+| --- | --- | --- |
+| `[DIR]` | `migrations` | Where to scaffold the migrations directory |
+| `--rules <agents\|claude\|cursor\|windsurf\|all\|none>` | `agents` | Which agent-rules file(s) to write or append to |
+| `--skill` | off | Also install the `/soma-schema` Claude skill to `~/.claude/skills/soma-schema/SKILL.md` |
+| `--explore` | off | Open the visual migration explorer after scaffolding |
+
+If the target file already exists, the soma-schema rules section is appended idempotently — existing content is never overwritten.
+
 ### As a library
 
 ```toml
 [dependencies]
-soma-schema = "0.2"
+soma-schema = "0.3"
 ```
 
 Or:
@@ -43,7 +65,7 @@ Or:
 cargo add soma-schema
 ```
 
-### As a CLI
+### As a CLI only
 
 ```sh
 cargo install soma-schema
@@ -55,51 +77,29 @@ The binary requires the `cli` feature, which is on by default.
 
 ## AI-native: your agent writes the migrations
 
-Traditional migration tools (Flyway, Liquibase, sqlx-migrate) were built for humans typing commands. soma-schema ships the agent contract so your AI follows the conventions from the start, and because agents are non-deterministic, the runner enforces the invariants (checksum drift, FK-safe ordering, never editing an applied file) to catch the mistakes it still makes.
+Traditional migration tools (Flyway, Liquibase, sqlx-migrate) were built for humans typing commands. soma-schema ships the agent contract so your AI follows the conventions from the start. Agents are non-deterministic — the runner enforces the invariants (checksum drift, FK-safe ordering, never editing an applied file) to catch the mistakes they still make.
 
-Paste this block into your repo's `AGENTS.md` or `CLAUDE.md` (works with any agent — Claude, Cursor, Copilot, etc.):
-
-```text
-## Database migrations — soma-schema
-
-All database migrations use soma-schema (https://github.com/chaitugsk07/soma-schema).
-
-Non-negotiable:
-1. Never edit an applied migration file. Checksum drift = immediate error on next run.
-2. Every new .sql must be listed in migration-order.yaml (correct version, apply order).
-3. Write a DOWN section for every migration unless it is genuinely irreversible. Manifest
-   order must be FK-correct forward; rollback order is the exact reverse.
-4. Seeds use ON CONFLICT DO NOTHING in UP so re-runs are safe.
-5. One schema per service. 00_setup/ must CREATE SCHEMA IF NOT EXISTS it.
-6. Pool max_connections >= 2 (one held for advisory lock).
-7. Unique advisory_lock_key per service when services share one Postgres database.
-8. 00_setup/ SQL is idempotent (IF NOT EXISTS, CREATE OR REPLACE) — runs every up().
-
-Adding a migration:
-- Create <YYYYMMDD>_<NN>_<name>.sql with UP + "-- DOWN ==" + DOWN.
-- Add it to migration-order.yaml (created/author/why).
-- Run status to confirm pending, then up to apply.
-- Never touch the file again once applied to any environment.
-```
-
-With that block in place, an agent generating a migration will follow the invariants automatically — correct file format, manifest entry, idempotent seeds, and a proper DOWN section.
+`soma-schema init` writes `AGENTS.md` for you. You can also paste the block manually into an existing `CLAUDE.md` or `.cursor/rules/` file (works with any agent — Claude, Cursor, Copilot, etc.). See the canonical rules text in [AGENTS.md](AGENTS.md).
 
 ---
 
 ## 60-second quickstart
 
 ```sh
-# Scaffold a migrations directory.
-soma-schema init migrations/
+# Install and scaffold — one command.
+cargo install soma-schema && soma-schema init
 
-# Edit migrations/00_setup/01_schema.sql — add your CREATE SCHEMA statement.
-# Add your first migration to migrations/01_migrated/1/ and list it in migration-order.yaml.
+# Set your connection URL.
+export DATABASE_URL="postgres://user:pass@localhost/mydb"
 
-# Apply everything pending.
+# Apply everything pending (including the runnable example migration).
 soma-schema --database-url "$DATABASE_URL" --migrations migrations/ up
 
 # Check what's applied and what's pending.
 soma-schema --database-url "$DATABASE_URL" --migrations migrations/ status
+
+# Open the visual explorer.
+soma-schema --migrations migrations/ explorer
 
 # Roll back the last migration.
 soma-schema --database-url "$DATABASE_URL" --migrations migrations/ down

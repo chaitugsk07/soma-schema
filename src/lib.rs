@@ -27,6 +27,7 @@
 //! # }
 //! ```
 
+pub mod agent_rules;
 pub mod discovery;
 pub mod driver;
 pub mod error;
@@ -38,6 +39,7 @@ pub mod postgres;
 #[cfg(feature = "explorer")]
 pub mod explorer;
 
+pub use agent_rules::{install_skill, write_rules, RulesTarget};
 pub use discovery::discover;
 pub use driver::{AppliedMigration, LockGuard, MigrationDriver};
 pub use error::{Error, Result};

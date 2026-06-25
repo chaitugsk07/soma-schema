@@ -4,7 +4,17 @@ description = "How to install soma-schema as a CLI binary or add it as a library
 weight = 10
 +++
 
-## As a CLI binary
+## One-command setup
+
+The fastest way to get started is:
+
+```sh
+cargo install soma-schema && soma-schema init
+```
+
+This installs the CLI from crates.io and immediately scaffolds your project — see [What `init` creates](#what-init-creates) below.
+
+## As a CLI binary only
 
 ```sh
 cargo install soma-schema
@@ -24,7 +34,7 @@ Add the dependency to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-soma-schema = "0.2"
+soma-schema = "0.3"
 ```
 
 Or use `cargo add`:
@@ -38,7 +48,7 @@ cargo add soma-schema
 The `cli` feature pulls in `clap`. If you are using soma-schema purely as an embedded library, disable it:
 
 ```toml
-soma-schema = { version = "0.2", default-features = false }
+soma-schema = { version = "0.3", default-features = false }
 ```
 
 Most services that run migrations at startup should use `default-features = false`.
@@ -50,11 +60,40 @@ Most services that run migrations at startup should use `default-features = fals
 soma-schema = { path = "../soma-schema", default-features = false }
 
 # Pinned to a git tag:
-soma-schema = { git = "https://github.com/chaitugsk07/soma-schema", tag = "v0.2.0", default-features = false }
+soma-schema = { git = "https://github.com/chaitugsk07/soma-schema", tag = "v0.3.0", default-features = false }
 
 # From crates.io once published:
-soma-schema = { version = "0.2", default-features = false }
+soma-schema = { version = "0.3", default-features = false }
 ```
+
+## What `init` creates
+
+`soma-schema init [DIR]` scaffolds everything in one step:
+
+```text
+.                          ← repo root
+├── AGENTS.md              ← agent-rules file (written by default)
+└── migrations/            ← DIR, defaults to "migrations"
+    ├── migration-order.yaml
+    ├── 00_setup/
+    │   └── 01_schema.sql  ← idempotent bootstrap (CREATE SCHEMA IF NOT EXISTS)
+    └── 01_migrated/
+        └── 1/
+            └── 20260101_01_example.sql  ← runnable CREATE TABLE + DROP DOWN
+```
+
+The example migration is already listed in `migration-order.yaml`, so `soma-schema up` works immediately after `init`.
+
+### `init` flags
+
+| Flag | Default | Description |
+| --- | --- | --- |
+| `[DIR]` | `migrations` | Where to scaffold the migrations directory |
+| `--rules <agents\|claude\|cursor\|windsurf\|all\|none>` | `agents` | Which agent-rules file(s) to write or append to |
+| `--skill` | off | Also install the `/soma-schema` Claude skill to `~/.claude/skills/soma-schema/SKILL.md` |
+| `--explore` | off | Open the visual migration explorer after scaffolding |
+
+If the target rules file already exists, the soma-schema section is appended idempotently — existing content is never overwritten.
 
 ## Requirements
 

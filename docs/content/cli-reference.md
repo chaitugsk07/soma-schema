@@ -9,7 +9,7 @@ weight = 60
 These flags apply to every subcommand that connects to a database.
 
 | Flag | Env var | Default | Description |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `--database-url <URL>` | `DATABASE_URL` | — | Postgres connection URL |
 | `--migrations <PATH>` | — | `migrations` | Path to the migrations root directory |
 | `--schema <SCHEMA>` | — | (connection default) | Target schema for the tracking table |
@@ -19,24 +19,36 @@ These flags apply to every subcommand that connects to a database.
 
 ## `init`
 
-Scaffold a new migrations directory.
+Scaffold a new migrations directory and wire up agent rules in one step.
 
 ```sh
-soma-schema init [DIR]
+soma-schema init [DIR] [--rules <FORMAT>] [--skill] [--explore]
 ```
 
-`DIR` defaults to `migrations`. Creates the standard layout:
+`DIR` defaults to `migrations`. Creates:
 
 ```text
-DIR/
-  migration-order.yaml
-  00_setup/
-    01_schema.sql
-  01_migrated/
-    1/
+.                          <- current directory (repo root)
++-- AGENTS.md              <- agent-rules file (default; see --rules)
++-- DIR/
+    +-- migration-order.yaml
+    +-- 00_setup/
+    |   +-- 01_schema.sql
+    +-- 01_migrated/
+        +-- 1/
+            +-- <date>_01_example.sql  <- runnable example, listed in manifest
 ```
 
-Safe to run on an existing directory — it will not overwrite files that already exist.
+| Flag | Default | Description |
+| --- | --- | --- |
+| `[DIR]` | `migrations` | Path for the migrations directory |
+| `--rules <FORMAT>` | `agents` | Agent-rules file to write: `agents` (AGENTS.md), `claude` (CLAUDE.md), `cursor` (.cursor/rules/soma-schema.mdc), `windsurf` (.windsurf/rules/soma-schema.md), `all`, or `none` |
+| `--skill` | off | Install the `/soma-schema` Claude skill to `~/.claude/skills/soma-schema/SKILL.md` |
+| `--explore` | off | Open the visual migration explorer after scaffolding |
+
+If the target rules file already exists, the soma-schema section is appended idempotently (skipped if a soma-schema migrations section is already present). Existing files are never overwritten or truncated.
+
+Safe to run on an existing directory — it will not overwrite migration files that already exist.
 
 ## `up`
 
@@ -66,7 +78,7 @@ soma-schema --database-url <URL> --migrations <PATH> down [--steps N]
 ```
 
 | Flag | Default | Description |
-|---|---|---|
+| --- | --- | --- |
 | `--steps <N>` | `1` | Number of migrations to roll back |
 
 Rollback order is the exact reverse of manifest position — not filename sort. This is what makes FK-safe rollback deterministic.
@@ -97,7 +109,7 @@ soma-schema --migrations <PATH> explorer [--format html|json] [--out <PATH>] [--
 ```
 
 | Flag | Default | Description |
-|---|---|---|
+| --- | --- | --- |
 | `--format <FORMAT>` | `html` | Output format: `html` (self-contained page) or `json` (raw data) |
 | `--out <PATH>` | temp file (html) / stdout (json) | Write output to this path instead of the default |
 | `--no-open` | off | Skip opening the browser after writing the HTML file |
@@ -109,12 +121,12 @@ The HTML output includes a schema ERD, a version-grouped migration timeline, and
 ## Exit codes
 
 | Code | Meaning |
-|---|---|
+| --- | --- |
 | `0` | Success |
 | `1` | Error (connection failure, drift, orphan, missing file, etc.) |
 
 ## Environment variable summary
 
 | Variable | Used by |
-|---|---|
+| --- | --- |
 | `DATABASE_URL` | All database-connecting subcommands |

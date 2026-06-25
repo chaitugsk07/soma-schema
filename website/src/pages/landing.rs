@@ -176,6 +176,158 @@ pub fn LandingPage() -> impl IntoView {
 
             <div class="ss-separator landing-container"></div>
 
+            // ── ONE COMMAND ────────────────────────────────────────────────
+            <section class="page-section landing-container ss-anim-2" aria-labelledby="one-cmd-heading">
+                <span class="section-eyebrow init-eyebrow">"One command"</span>
+                <h2 class="section-title" id="one-cmd-heading">
+                    "One command. Your agent\u{2019}s wired up."
+                </h2>
+                <p class="init-lead">
+                    "Install the CLI, scaffold migrations, drop in agent rules, and get a runnable example \u{2014} all at once."
+                </p>
+
+                // One-liner terminal block
+                <div class="terminal-card mt-6 init-oneliner-card" aria-label="One-command init">
+                    <div class="terminal-chrome">
+                        <span class="chrome-dot" style="background:#ff5f57"></span>
+                        <span class="chrome-dot" style="background:#ffbd2e"></span>
+                        <span class="chrome-dot" style="background:#28ca41"></span>
+                        <span class="chrome-title">"terminal"</span>
+                    </div>
+                    <div class="terminal-body">
+                        <div>
+                            <span class="t-prompt">"$ "</span>
+                            <span class="t-cmd">"cargo install soma-schema "</span>
+                            <span class="t-flag">"&& "</span>
+                            <span class="t-cmd">"soma-schema init"</span>
+                        </div>
+                    </div>
+                </div>
+
+                // ── FLOW GRAPH ─────────────────────────────────────────────
+                <div class="init-flow-wrap mt-8" role="img" aria-label="init command flow: cargo install → soma-schema init → scaffolds migrations directory, writes AGENTS.md, creates runnable example migration → then run up and explorer">
+                    // Desktop SVG flow (hidden on mobile)
+                    <div class="init-flow-desktop" aria-hidden="true">
+                        <svg class="init-flow-svg" viewBox="0 0 960 340" xmlns="http://www.w3.org/2000/svg" role="presentation" focusable="false">
+                            // ── Background panel
+                            <rect x="0" y="0" width="960" height="340" rx="14" class="init-flow-bg"/>
+
+                            // ── Step 0: cargo install ──────────────────────
+                            <rect x="24" y="130" width="160" height="80" rx="10" class="init-node init-node-install init-node-anim-0"/>
+                            <text x="104" y="163" text-anchor="middle" class="init-node-label init-node-anim-0">"cargo install"</text>
+                            <text x="104" y="181" text-anchor="middle" class="init-node-mono init-node-anim-0">"soma-schema"</text>
+                            <text x="104" y="198" text-anchor="middle" class="init-node-sub init-node-anim-0">"crates.io"</text>
+
+                            // Arrow install → init
+                            <line x1="184" y1="170" x2="232" y2="170" class="init-connector init-conn-anim-0"/>
+                            <polygon points="232,165 242,170 232,175" class="init-arrow init-conn-anim-0"/>
+
+                            // ── Step 1: soma-schema init (central node) ────
+                            <rect x="242" y="110" width="190" height="120" rx="10" class="init-node init-node-center init-node-anim-1"/>
+                            <text x="337" y="158" text-anchor="middle" class="init-node-center-label init-node-anim-1">"soma-schema"</text>
+                            <text x="337" y="178" text-anchor="middle" class="init-node-center-cmd init-node-anim-1">"init"</text>
+                            <text x="337" y="205" text-anchor="middle" class="init-node-sub init-node-anim-1">"--rules agents (default)"</text>
+
+                            // Branch connectors from center to three outputs
+                            // Top branch → migrations/
+                            <line x1="432" y1="150" x2="510" y2="80" class="init-connector init-conn-branch init-conn-anim-1"/>
+                            <polygon points="506,75 516,80 507,86" class="init-arrow-branch init-conn-anim-1"/>
+                            // Mid branch → AGENTS.md
+                            <line x1="432" y1="170" x2="510" y2="170" class="init-connector init-conn-branch init-conn-anim-1"/>
+                            <polygon points="510,165 520,170 510,175" class="init-arrow-branch init-conn-anim-1"/>
+                            // Bot branch → example migration
+                            <line x1="432" y1="190" x2="510" y2="260" class="init-connector init-conn-branch init-conn-anim-1"/>
+                            <polygon points="506,254 516,260 508,266" class="init-arrow-branch init-conn-anim-1"/>
+
+                            // ── Output A: migrations/ tree ─────────────────
+                            <rect x="520" y="30" width="210" height="140" rx="10" class="init-node init-node-fs init-node-anim-2"/>
+                            <text x="533" y="56" class="init-node-label-left init-node-anim-2">"migrations/"</text>
+                            <text x="541" y="77" class="init-node-mono-sm init-node-anim-2">"migration-order.yaml"</text>
+                            <text x="541" y="97" class="init-node-mono-sm init-node-anim-2">"00_setup/"</text>
+                            <text x="553" y="115" class="init-node-mono-sm init-node-mono-muted init-node-anim-2">"01_schema.sql"</text>
+                            <text x="541" y="133" class="init-node-mono-sm init-node-anim-2">"01_migrated/1/"</text>
+                            <text x="553" y="151" class="init-node-mono-sm init-node-mono-muted init-node-anim-2">"20260101_01_example.sql"</text>
+
+                            // ── Output B: AGENTS.md ───────────────────────
+                            <rect x="520" y="130" width="210" height="80" rx="10" class="init-node init-node-agents init-node-anim-3"/>
+                            <text x="625" y="163" text-anchor="middle" class="init-node-label init-node-anim-3">"AGENTS.md"</text>
+                            <text x="625" y="181" text-anchor="middle" class="init-node-sub init-node-anim-3">"agent rules wired up"</text>
+                            <text x="625" y="198" text-anchor="middle" class="init-node-sub init-node-anim-3">"--rules agents|claude|all"</text>
+
+                            // ── Output C: runnable example ─────────────────
+                            <rect x="520" y="220" width="210" height="90" rx="10" class="init-node init-node-example init-node-anim-4"/>
+                            <text x="625" y="252" text-anchor="middle" class="init-node-label init-node-anim-4">"example migration"</text>
+                            <text x="625" y="270" text-anchor="middle" class="init-node-mono init-node-anim-4">"CREATE TABLE … UP"</text>
+                            <text x="625" y="288" text-anchor="middle" class="init-node-mono init-node-anim-4">"DROP TABLE … DOWN"</text>
+
+                            // ── Merge connector → next steps ───────────────
+                            // top + mid merge line
+                            <line x1="730" y1="100" x2="770" y2="100" class="init-connector init-conn-merge init-conn-anim-4"/>
+                            <line x1="730" y1="170" x2="750" y2="170" class="init-connector init-conn-merge init-conn-anim-4"/>
+                            <line x1="730" y1="265" x2="750" y2="265" class="init-connector init-conn-merge init-conn-anim-4"/>
+                            // vertical bar collecting all three
+                            <line x1="750" y1="100" x2="750" y2="265" class="init-connector init-conn-merge init-conn-anim-4"/>
+                            // horizontal to next-steps box
+                            <line x1="750" y1="183" x2="778" y2="183" class="init-connector init-conn-merge init-conn-anim-4"/>
+                            <polygon points="778,178 788,183 778,188" class="init-arrow-merge init-conn-anim-4"/>
+
+                            // ── Next steps: up + explorer ──────────────────
+                            <rect x="788" y="120" width="148" height="126" rx="10" class="init-node init-node-next init-node-anim-5"/>
+                            <text x="862" y="152" text-anchor="middle" class="init-node-label-next init-node-anim-5">"what\u{2019}s next"</text>
+                            <text x="862" y="175" text-anchor="middle" class="init-node-mono-next init-node-anim-5">"soma-schema up"</text>
+                            <text x="862" y="193" text-anchor="middle" class="init-node-sub init-node-anim-5">"apply migrations"</text>
+                            <text x="862" y="218" text-anchor="middle" class="init-node-mono-next init-node-anim-5">"soma-schema"</text>
+                            <text x="862" y="236" text-anchor="middle" class="init-node-mono-next init-node-anim-5">"explorer"</text>
+                        </svg>
+                    </div>
+
+                    // Mobile flow (stacked cards, shown only on small screens)
+                    <div class="init-flow-mobile" aria-hidden="true">
+                        <div class="init-flow-step init-node-install">
+                            <span class="init-flow-step-label">"install"</span>
+                            <code class="init-flow-step-cmd">"cargo install soma-schema"</code>
+                        </div>
+                        <div class="init-flow-arrow-down" aria-hidden="true">"↓"</div>
+                        <div class="init-flow-step init-node-center-mobile">
+                            <span class="init-flow-step-label">"scaffold"</span>
+                            <code class="init-flow-step-cmd">"soma-schema init"</code>
+                        </div>
+                        <div class="init-flow-arrow-down" aria-hidden="true">"↓"</div>
+                        <div class="init-flow-mobile-outputs">
+                            <div class="init-flow-output init-node-fs-mobile">
+                                <span class="init-flow-out-icon" aria-hidden="true">"📁"</span>
+                                <div>
+                                    <div class="init-flow-out-title">"migrations/"</div>
+                                    <div class="init-flow-out-sub">"order.yaml · 00_setup/ · 01_migrated/1/…"</div>
+                                </div>
+                            </div>
+                            <div class="init-flow-output init-node-agents-mobile">
+                                <span class="init-flow-out-icon" aria-hidden="true">"🤖"</span>
+                                <div>
+                                    <div class="init-flow-out-title">"AGENTS.md"</div>
+                                    <div class="init-flow-out-sub">"agent rules · --rules agents|claude|all"</div>
+                                </div>
+                            </div>
+                            <div class="init-flow-output init-node-example-mobile">
+                                <span class="init-flow-out-icon" aria-hidden="true">"⚡"</span>
+                                <div>
+                                    <div class="init-flow-out-title">"example migration"</div>
+                                    <div class="init-flow-out-sub">"CREATE TABLE UP · DROP TABLE DOWN"</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="init-flow-arrow-down" aria-hidden="true">"↓"</div>
+                        <div class="init-flow-step init-node-next-mobile">
+                            <span class="init-flow-step-label">"then"</span>
+                            <code class="init-flow-step-cmd">"soma-schema up"</code>
+                            <code class="init-flow-step-cmd">"soma-schema explorer"</code>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <div class="ss-separator landing-container"></div>
+
             // ── QUICKSTART ─────────────────────────────────────────────────
             <section class="page-section landing-container ss-anim-2">
                 <span class="section-eyebrow">"Quickstart"</span>
@@ -196,56 +348,50 @@ pub fn LandingPage() -> impl IntoView {
                     </button>
                     <div class="terminal-body">
                         <div>
-                            <span class="t-comment">"# 1. Add to Cargo.toml"</span>
+                            <span class="t-comment">"# 1. Install the CLI and scaffold in one shot"</span>
                         </div>
                         <div>
                             <span class="t-prompt">"$ "</span>
-                            <span class="t-cmd">"cargo add "</span>
-                            <span class="t-arg">"soma-schema"</span>
+                            <span class="t-cmd">"cargo install soma-schema "</span>
+                            <span class="t-flag">"&& "</span>
+                            <span class="t-cmd">"soma-schema init"</span>
                         </div>
                         <div class="mt-3">
-                            <span class="t-comment">"# 2. Scaffold migrations directory"</span>
-                        </div>
-                        <div>
-                            <span class="t-prompt">"$ "</span>
-                            <span class="t-cmd">"soma-schema init "</span>
-                            <span class="t-arg">"migrations/"</span>
-                        </div>
-                        <div class="mt-3">
-                            <span class="t-comment">"# 3. Apply everything pending"</span>
+                            <span class="t-comment">"# 2. Apply everything pending"</span>
                         </div>
                         <div>
                             <span class="t-prompt">"$ "</span>
                             <span class="t-cmd">"soma-schema "</span>
                             <span class="t-flag">"--database-url "</span>
                             <span class="t-arg">"$DATABASE_URL "</span>
-                            <span class="t-flag">"--migrations "</span>
-                            <span class="t-arg">"migrations/ "</span>
                             <span class="t-cmd">"up"</span>
                         </div>
                         <div class="mt-3">
-                            <span class="t-comment">"# 4. Check status"</span>
+                            <span class="t-comment">"# 3. Check status"</span>
                         </div>
                         <div>
                             <span class="t-prompt">"$ "</span>
                             <span class="t-cmd">"soma-schema "</span>
                             <span class="t-flag">"--database-url "</span>
                             <span class="t-arg">"$DATABASE_URL "</span>
-                            <span class="t-flag">"--migrations "</span>
-                            <span class="t-arg">"migrations/ "</span>
                             <span class="t-cmd">"status"</span>
                         </div>
                         <div class="mt-3">
-                            <span class="t-comment">"# 5. Roll back last migration"</span>
+                            <span class="t-comment">"# 4. Roll back last migration"</span>
                         </div>
                         <div>
                             <span class="t-prompt">"$ "</span>
                             <span class="t-cmd">"soma-schema "</span>
                             <span class="t-flag">"--database-url "</span>
                             <span class="t-arg">"$DATABASE_URL "</span>
-                            <span class="t-flag">"--migrations "</span>
-                            <span class="t-arg">"migrations/ "</span>
                             <span class="t-cmd">"down"</span>
+                        </div>
+                        <div class="mt-3">
+                            <span class="t-comment">"# 5. Open the visual explorer"</span>
+                        </div>
+                        <div>
+                            <span class="t-prompt">"$ "</span>
+                            <span class="t-cmd">"soma-schema explorer"</span>
                         </div>
                     </div>
                 </div>

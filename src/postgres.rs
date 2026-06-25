@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use sqlx::{postgres::PgConnection, Connection, PgPool};
+use sqlx::{postgres::PgConnection, Connection, Executor, PgPool};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -14,83 +14,6 @@ fn validate_ident(s: &str) -> Result<()> {
         return Err(Error::InvalidIdentifier(s.to_owned()));
     }
     Ok(())
-}
-
-/// Split a SQL script into individual statements by semicolons that appear outside
-/// single-quoted string literals and `--` line comments.
-///
-/// Handles:
-/// - Single-quoted strings (`'...'`), including escaped quotes (`''`)
-/// - `--` line comments (to end of line)
-/// - Dollar-quoted strings are not parsed; avoid bare `;` inside `$$...$$` blocks.
-///
-/// ponytail: handles every pattern present in our DDL/DML migrations; a full SQL parser
-/// would be a heavy dependency for this narrow use case. Ceiling: dollar-quoted bodies
-/// containing bare semicolons — upgrade path is a real parser (e.g. `pg_query`).
-fn split_statements(sql: &str) -> Vec<String> {
-    let mut stmts: Vec<String> = Vec::new();
-    let mut current = String::new();
-    let chars: Vec<char> = sql.chars().collect();
-    let mut i = 0;
-
-    while i < chars.len() {
-        let c = chars[i];
-
-        if c == '-' && i + 1 < chars.len() && chars[i + 1] == '-' {
-            // Line comment: consume until newline.
-            while i < chars.len() && chars[i] != '\n' {
-                current.push(chars[i]);
-                i += 1;
-            }
-        } else if c == '\'' {
-            // Single-quoted string: consume until closing quote, handling '' escapes.
-            current.push(c);
-            i += 1;
-            loop {
-                if i >= chars.len() {
-                    break;
-                }
-                let qc = chars[i];
-                current.push(qc);
-                i += 1;
-                if qc == '\'' {
-                    // Check for escaped quote ('').
-                    if i < chars.len() && chars[i] == '\'' {
-                        current.push(chars[i]);
-                        i += 1;
-                    } else {
-                        break;
-                    }
-                }
-            }
-        } else if c == ';' {
-            let trimmed = current.trim().to_owned();
-            if !trimmed.is_empty()
-                && !trimmed
-                    .lines()
-                    .all(|l| l.trim().is_empty() || l.trim().starts_with("--"))
-            {
-                stmts.push(trimmed);
-            }
-            current.clear();
-            i += 1;
-        } else {
-            current.push(c);
-            i += 1;
-        }
-    }
-
-    // Trailing content after the last semicolon (should be empty for well-formed SQL).
-    let trimmed = current.trim().to_owned();
-    if !trimmed.is_empty()
-        && !trimmed
-            .lines()
-            .all(|l| l.trim().is_empty() || l.trim().starts_with("--"))
-    {
-        stmts.push(trimmed);
-    }
-
-    stmts
 }
 
 /// Configuration for the Postgres driver.
@@ -231,27 +154,37 @@ impl MigrationDriver for PostgresDriver {
     }
 
     async fn run_setup_sql(&self, name: &str, sql: &str) -> Result<()> {
+        // Own the strings up front: async_trait boxes the future and requires all
+        // captured values to be 'async_trait; owned Strings satisfy that.
+        let name = name.to_owned();
+        let sql = sql.to_owned();
         let mut tx = self.pool.begin().await?;
         if let Some(sp) = self.set_search_path_sql() {
             sqlx::query(&sp)
                 .execute(&mut *tx)
                 .await
                 .map_err(|e| Error::SetupFailed {
-                    file: name.to_owned(),
+                    file: name.clone(),
                     source: e,
                 })?;
         }
-        for stmt in split_statements(sql) {
-            sqlx::query(&stmt)
-                .execute(&mut *tx)
+        // raw_sql sends the whole file as a simple-query batch (simple protocol,
+        // not prepared), so multi-statement DDL and PL/pgSQL $$ blocks work correctly.
+        // We call Executor::execute on the connection directly (not the RawSql inherent
+        // execute), because the inherent method is async fn and captures the executor
+        // reference, which causes an HRTB Send failure inside async_trait boxed futures.
+        // Calling through the Executor trait returns BoxFuture<'e> which does not capture.
+        {
+            let conn: &mut PgConnection = &mut tx;
+            conn.execute(sqlx::raw_sql(&sql))
                 .await
                 .map_err(|e| Error::SetupFailed {
-                    file: name.to_owned(),
+                    file: name.clone(),
                     source: e,
                 })?;
         }
         tx.commit().await.map_err(|e| Error::SetupFailed {
-            file: name.to_owned(),
+            file: name,
             source: e,
         })?;
         Ok(())
@@ -342,14 +275,21 @@ impl MigrationDriver for PostgresDriver {
     }
 
     async fn apply(&self, migration: &Migration, up_sql: &str, batch: i32) -> Result<()> {
+        // Own SQL up front so the async_trait boxed future doesn't borrow across the lifetime boundary.
+        let up_sql = up_sql.to_owned();
         let start = std::time::Instant::now();
         let mut tx = self.pool.begin().await?;
         // Set search_path so DDL lands in the right schema.
         if let Some(sp) = self.set_search_path_sql() {
             sqlx::query(&sp).execute(&mut *tx).await?;
         }
-        for stmt in split_statements(up_sql) {
-            sqlx::query(&stmt).execute(&mut *tx).await?;
+        // raw_sql sends the whole file as a simple-query batch — handles multi-statement
+        // DDL and PL/pgSQL $$ bodies that the old per-statement loop mis-split.
+        // Call through Executor::execute (BoxFuture) not RawSql::execute (async fn) to
+        // avoid the HRTB Send failure that async fn captures cause inside async_trait.
+        {
+            let conn: &mut PgConnection = &mut tx;
+            conn.execute(sqlx::raw_sql(&up_sql)).await?;
         }
         let elapsed_ms = start.elapsed().as_millis() as i32;
         let qt = self.qualified_table();
@@ -372,12 +312,18 @@ impl MigrationDriver for PostgresDriver {
     }
 
     async fn revert(&self, applied: &AppliedMigration, down_sql: &str) -> Result<()> {
+        // Own SQL up front so the async_trait boxed future doesn't borrow across the lifetime boundary.
+        let down_sql = down_sql.to_owned();
         let mut tx = self.pool.begin().await?;
         if let Some(sp) = self.set_search_path_sql() {
             sqlx::query(&sp).execute(&mut *tx).await?;
         }
-        for stmt in split_statements(down_sql) {
-            sqlx::query(&stmt).execute(&mut *tx).await?;
+        // raw_sql sends the whole file as a simple-query batch — handles PL/pgSQL $$ bodies correctly.
+        // Call through Executor::execute (BoxFuture) not RawSql::execute (async fn) to
+        // avoid the HRTB Send failure that async fn captures cause inside async_trait.
+        {
+            let conn: &mut PgConnection = &mut tx;
+            conn.execute(sqlx::raw_sql(&down_sql)).await?;
         }
         let qt = self.qualified_table();
         let delete = format!("DELETE FROM {qt} WHERE version = $1 AND file = $2");
@@ -444,92 +390,5 @@ mod tests {
             format!("\"{t}\"")
         };
         assert_eq!(without_schema, "\"00_schema_migrations\"");
-    }
-
-    // --- split_statements tests ---
-
-    #[test]
-    fn split_single_statement() {
-        let stmts = split_statements("CREATE TABLE t (id INT)");
-        assert_eq!(stmts, vec!["CREATE TABLE t (id INT)"]);
-    }
-
-    #[test]
-    fn split_multiple_statements() {
-        let sql = "CREATE TABLE a (id INT);\nCREATE TABLE b (id INT);";
-        let stmts = split_statements(sql);
-        assert_eq!(stmts.len(), 2);
-        assert_eq!(stmts[0], "CREATE TABLE a (id INT)");
-        assert_eq!(stmts[1], "CREATE TABLE b (id INT)");
-    }
-
-    #[test]
-    fn split_single_quoted_string_with_semicolon_stays_one_statement() {
-        // The semicolon inside 'hello;world' must NOT split the statement.
-        let sql = "INSERT INTO t (name) VALUES ('hello;world');";
-        let stmts = split_statements(sql);
-        assert_eq!(stmts.len(), 1);
-        assert!(stmts[0].contains("'hello;world'"));
-    }
-
-    #[test]
-    fn split_single_quoted_escaped_quote() {
-        // '' inside a string is an escaped single quote, not a string close.
-        let sql = "INSERT INTO t (name) VALUES ('it''s fine');";
-        let stmts = split_statements(sql);
-        assert_eq!(stmts.len(), 1);
-        assert!(stmts[0].contains("'it''s fine'"));
-    }
-
-    #[test]
-    fn split_line_comment_semicolon_does_not_split() {
-        // A semicolon in a -- comment must NOT be treated as a statement terminator.
-        let sql = "CREATE TABLE t (id INT); -- trailing; comment\nCREATE TABLE u (id INT);";
-        let stmts = split_statements(sql);
-        // The first real statement ends at the `;` before `--`, the second after the newline.
-        assert_eq!(stmts.len(), 2, "got: {stmts:?}");
-    }
-
-    #[test]
-    fn split_trailing_statement_without_semicolon() {
-        // A final statement without a trailing `;` must still be captured.
-        let sql = "CREATE TABLE a (id INT);\nCREATE TABLE b (id INT)";
-        let stmts = split_statements(sql);
-        assert_eq!(stmts.len(), 2);
-        assert_eq!(stmts[1], "CREATE TABLE b (id INT)");
-    }
-
-    #[test]
-    fn split_empty_input_returns_empty() {
-        assert!(split_statements("").is_empty());
-    }
-
-    #[test]
-    fn split_only_comments_returns_empty() {
-        let sql = "-- just a comment\n-- another comment";
-        assert!(
-            split_statements(sql).is_empty(),
-            "comment-only input should produce no statements"
-        );
-    }
-
-    #[test]
-    fn split_dollar_quote_limitation_documented() {
-        // ponytail: dollar-quoted strings ($$...$$) are NOT parsed; a semicolon inside
-        // $$ ... $$ will incorrectly split the statement. This is the known ceiling —
-        // upgrade path is a real SQL parser (e.g. pg_query crate). The test documents
-        // the ACTUAL current behavior rather than the desired behavior, so CI catches
-        // any accidental change to the status quo.
-        let sql = "CREATE FUNCTION f() RETURNS void LANGUAGE plpgsql AS $$ BEGIN NULL; END $$;";
-        let stmts = split_statements(sql);
-        // With the current implementation, the bare `;` inside $$ splits the statement.
-        // This assertion intentionally documents the limitation — it will need updating
-        // if/when dollar-quote support is added.
-        assert!(
-            stmts.len() > 1,
-            "expected dollar-quote limitation to cause a split (got {} stmt(s)): {:?}",
-            stmts.len(),
-            stmts
-        );
     }
 }
