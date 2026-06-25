@@ -1430,9 +1430,9 @@ checksum = "8ed6a63f02c8539c91a8685a86f4099661ba3da017932f6ebbea6de3f0fa7c90"
 
 [[package]]
 name = "soma-ui"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5d173b9148e8b3f5d8677d8cb1cc5523fe20d9e2fb06c851ec87a287d3bca72d"
+checksum = "530938abdb397866c9225a299de895348bbded7bedc6e2d32625b13083ba49b4"
 dependencies = [
  "icondata",
  "js-sys",

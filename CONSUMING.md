@@ -13,10 +13,10 @@ soma-schema's `cli` feature is on by default and pulls in `clap`. A consumer usi
 soma-schema = { path = "../soma-schema", default-features = false }
 
 # Stable pin via git tag:
-soma-schema = { git = "https://github.com/chaitugsk07/soma-schema", tag = "v0.1.0", default-features = false }
+soma-schema = { git = "https://github.com/chaitugsk07/soma-schema", tag = "v0.2.0", default-features = false }
 
 # Once published to crates.io:
-soma-schema = { version = "0.1", default-features = false }
+soma-schema = { version = "0.2", default-features = false }
 ```
 
 Keep `default-features = true` (or omit it entirely) only if you also want the `soma-schema` CLI binary built from this dependency. Most services embed the library and run migrations at startup — `default-features = false` is the norm.

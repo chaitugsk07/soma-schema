@@ -34,7 +34,7 @@ Most Rust migration tools order migrations by filename sort and hash only the UP
 
 ```toml
 [dependencies]
-soma-schema = "0.1"
+soma-schema = "0.2"
 ```
 
 Or:

@@ -24,7 +24,7 @@ Add the dependency to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-soma-schema = "0.1"
+soma-schema = "0.2"
 ```
 
 Or use `cargo add`:
@@ -38,7 +38,7 @@ cargo add soma-schema
 The `cli` feature pulls in `clap`. If you are using soma-schema purely as an embedded library, disable it:
 
 ```toml
-soma-schema = { version = "0.1", default-features = false }
+soma-schema = { version = "0.2", default-features = false }
 ```
 
 Most services that run migrations at startup should use `default-features = false`.
@@ -50,10 +50,10 @@ Most services that run migrations at startup should use `default-features = fals
 soma-schema = { path = "../soma-schema", default-features = false }
 
 # Pinned to a git tag:
-soma-schema = { git = "https://github.com/chaitugsk07/soma-schema", tag = "v0.1.0", default-features = false }
+soma-schema = { git = "https://github.com/chaitugsk07/soma-schema", tag = "v0.2.0", default-features = false }
 
 # From crates.io once published:
-soma-schema = { version = "0.1", default-features = false }
+soma-schema = { version = "0.2", default-features = false }
 ```
 
 ## Requirements
