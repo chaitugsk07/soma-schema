@@ -14,7 +14,9 @@ pub enum Error {
     #[error("unsupported manifest_version {found}; this tool only supports version 1")]
     UnsupportedManifestVersion { found: u32 },
 
-    #[error("invalid migration filename (must be a bare .sql name, no path separators, no '..'): {0}")]
+    #[error(
+        "invalid migration filename (must be a bare .sql name, no path separators, no '..'): {0}"
+    )]
     InvalidFileName(String),
 
     #[error("duplicate entry in manifest: version {version}, file {file}")]
@@ -46,7 +48,9 @@ pub enum Error {
     Sqlx(#[from] sqlx::Error),
 
     /// The pool must have at least 2 connections: one is reserved for the advisory lock.
-    #[error("pool too small: max_connections must be >= 2 (one is reserved for the advisory lock)")]
+    #[error(
+        "pool too small: max_connections must be >= 2 (one is reserved for the advisory lock)"
+    )]
     PoolTooSmall,
 
     /// An applied migration (present in the tracking table) is no longer on disk or in

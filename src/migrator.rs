@@ -61,7 +61,10 @@ impl Migrator {
         // If a migration is in the DB but no longer on disk / in the manifest, that is
         // an explicit integrity violation — surface it rather than silently skipping.
         for am in &applied {
-            match migrations.iter().find(|m| m.version == am.version && m.file == am.file) {
+            match migrations
+                .iter()
+                .find(|m| m.version == am.version && m.file == am.file)
+            {
                 None => {
                     return Err(Error::AppliedButMissing {
                         version: am.version,
@@ -121,7 +124,11 @@ impl Migrator {
         // Without this, applied migrations outside the take(steps) window would be silently
         // skipped even if their files are gone from the manifest.
         for am in &applied {
-            if migrations.iter().find(|m| m.version == am.version && m.file == am.file).is_none() {
+            if migrations
+                .iter()
+                .find(|m| m.version == am.version && m.file == am.file)
+                .is_none()
+            {
                 return Err(Error::AppliedButMissing {
                     version: am.version,
                     file: am.file.clone(),
@@ -140,8 +147,14 @@ impl Migrator {
         let mut applied = applied;
         // Sort descending by manifest position — the last-applied migration reverts first.
         applied.sort_by(|a, b| {
-            let pos_a = position.get(&(a.version, a.file.as_str())).copied().unwrap_or(0);
-            let pos_b = position.get(&(b.version, b.file.as_str())).copied().unwrap_or(0);
+            let pos_a = position
+                .get(&(a.version, a.file.as_str()))
+                .copied()
+                .unwrap_or(0);
+            let pos_b = position
+                .get(&(b.version, b.file.as_str()))
+                .copied()
+                .unwrap_or(0);
             pos_b.cmp(&pos_a)
         });
 
@@ -163,11 +176,9 @@ impl Migrator {
             }
 
             // SQL content comes from the stored raw field (same read as checksum).
-            let down_sql = migration.read_down().ok_or_else(|| {
-                Error::MissingDown {
-                    version: am.version,
-                    file: am.file.clone(),
-                }
+            let down_sql = migration.read_down().ok_or_else(|| Error::MissingDown {
+                version: am.version,
+                file: am.file.clone(),
             })?;
 
             driver.revert(am, &down_sql).await?;
@@ -231,10 +242,7 @@ impl Migrator {
 
         let manifest_path = root.join("migration-order.yaml");
         if !manifest_path.exists() {
-            std::fs::write(
-                &manifest_path,
-                MANIFEST_TEMPLATE,
-            )?;
+            std::fs::write(&manifest_path, MANIFEST_TEMPLATE)?;
         }
 
         let setup_path = root.join("00_setup").join("01_schema.sql");

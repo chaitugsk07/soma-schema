@@ -15,8 +15,8 @@ use sqlx::PgPool;
 use tempfile::TempDir;
 use uuid::Uuid;
 
-use soma_schema::{Migrator, PostgresConfig, PostgresDriver};
 use soma_schema::error::Error;
+use soma_schema::{Migrator, PostgresConfig, PostgresDriver};
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -63,11 +63,9 @@ impl Drop for SchemaGuard {
                 .build()
                 .expect("build cleanup runtime");
             rt.block_on(async {
-                let _ = sqlx::query(&format!(
-                    "DROP SCHEMA IF EXISTS \"{schema}\" CASCADE"
-                ))
-                .execute(&pool)
-                .await;
+                let _ = sqlx::query(&format!("DROP SCHEMA IF EXISTS \"{schema}\" CASCADE"))
+                    .execute(&pool)
+                    .await;
             });
         })
         .join()
@@ -183,12 +181,19 @@ async fn test_fresh_up_applies_all_and_creates_tracking_rows() {
     let setup_sql = "-- idempotent\nSELECT 1;";
     let f = MigrationsFixture::build(
         Some(setup_sql),
-        &[
-            (1, vec![
-                ("20260101_01_init.sql", &with_schema(&migration_create_table("tbl_a"), &schema)),
-                ("20260101_02_more.sql", &with_schema(&migration_create_table("tbl_b"), &schema)),
-            ]),
-        ],
+        &[(
+            1,
+            vec![
+                (
+                    "20260101_01_init.sql",
+                    &with_schema(&migration_create_table("tbl_a"), &schema),
+                ),
+                (
+                    "20260101_02_more.sql",
+                    &with_schema(&migration_create_table("tbl_b"), &schema),
+                ),
+            ],
+        )],
         None,
     );
 
@@ -210,13 +215,12 @@ async fn test_fresh_up_applies_all_and_creates_tracking_rows() {
     }
 
     // Tracking rows must exist.
-    let rows: Vec<(i32, String)> =
-        sqlx::query_as(&format!(
-            "SELECT version, file FROM \"{schema}\".\"00_schema_migrations\" ORDER BY version, file"
-        ))
-        .fetch_all(&pool)
-        .await
-        .unwrap();
+    let rows: Vec<(i32, String)> = sqlx::query_as(&format!(
+        "SELECT version, file FROM \"{schema}\".\"00_schema_migrations\" ORDER BY version, file"
+    ))
+    .fetch_all(&pool)
+    .await
+    .unwrap();
     assert_eq!(rows.len(), 2);
     assert_eq!(rows[0].1, "20260101_01_init.sql");
     assert_eq!(rows[1].1, "20260101_02_more.sql");
@@ -232,7 +236,13 @@ async fn test_up_again_is_noop() {
     let setup_sql = "SELECT 1;";
     let f = MigrationsFixture::build(
         Some(setup_sql),
-        &[(1, vec![("20260101_01_init.sql", &with_schema(&migration_create_table("tbl_noop"), &schema))])],
+        &[(
+            1,
+            vec![(
+                "20260101_01_init.sql",
+                &with_schema(&migration_create_table("tbl_noop"), &schema),
+            )],
+        )],
         None,
     );
     let driver = PostgresDriver::new(pool.clone(), pg_config(&schema)).unwrap();
@@ -248,7 +258,10 @@ async fn test_up_again_is_noop() {
     .await
     .unwrap();
 
-    migrator.up(&driver).await.expect("second up() should be a no-op");
+    migrator
+        .up(&driver)
+        .await
+        .expect("second up() should be a no-op");
 
     let after: (i64,) = sqlx::query_as(&format!(
         "SELECT COUNT(*) FROM \"{schema}\".\"00_schema_migrations\""
@@ -280,7 +293,10 @@ async fn test_checksum_drift_error() {
 
     // Now alter the file on disk to simulate drift.
     std::fs::write(
-        f.root.join("01_migrated").join("1").join("20260101_01_init.sql"),
+        f.root
+            .join("01_migrated")
+            .join("1")
+            .join("20260101_01_init.sql"),
         format!("{original_sql}\n-- drift"),
     )
     .unwrap();
@@ -301,10 +317,19 @@ async fn test_down_one_step_reverts_newest() {
 
     let f = MigrationsFixture::build(
         Some("SELECT 1;"),
-        &[(1, vec![
-            ("20260101_01_init.sql", &with_schema(&migration_create_table("tbl_first"), &schema)),
-            ("20260101_02_more.sql", &with_schema(&migration_create_table("tbl_second"), &schema)),
-        ])],
+        &[(
+            1,
+            vec![
+                (
+                    "20260101_01_init.sql",
+                    &with_schema(&migration_create_table("tbl_first"), &schema),
+                ),
+                (
+                    "20260101_02_more.sql",
+                    &with_schema(&migration_create_table("tbl_second"), &schema),
+                ),
+            ],
+        )],
         None,
     );
 
@@ -312,7 +337,10 @@ async fn test_down_one_step_reverts_newest() {
     let migrator = Migrator::from_root(&f.root);
     migrator.up(&driver).await.unwrap();
 
-    migrator.down(&driver, 1).await.expect("down 1 should succeed");
+    migrator
+        .down(&driver, 1)
+        .await
+        .expect("down 1 should succeed");
 
     // tbl_second should be gone; tbl_first should remain.
     let second_exists: (bool,) = sqlx::query_as(
@@ -323,7 +351,10 @@ async fn test_down_one_step_reverts_newest() {
     .fetch_one(&pool)
     .await
     .unwrap();
-    assert!(!second_exists.0, "tbl_second should be dropped after down 1");
+    assert!(
+        !second_exists.0,
+        "tbl_second should be dropped after down 1"
+    );
 
     let first_exists: (bool,) = sqlx::query_as(
         "SELECT EXISTS(SELECT 1 FROM information_schema.tables WHERE table_schema = $1 AND table_name = $2)"
@@ -360,11 +391,14 @@ async fn test_failing_migration_rolls_back_and_stops() {
 
     let f = MigrationsFixture::build(
         Some("SELECT 1;"),
-        &[(1, vec![
-            ("20260101_01_good.sql", &good_sql),
-            ("20260101_02_bad.sql", bad_sql),
-            ("20260101_03_later.sql", &later_sql),
-        ])],
+        &[(
+            1,
+            vec![
+                ("20260101_01_good.sql", &good_sql),
+                ("20260101_02_bad.sql", bad_sql),
+                ("20260101_03_later.sql", &later_sql),
+            ],
+        )],
         None,
     );
 
@@ -382,7 +416,10 @@ async fn test_failing_migration_rolls_back_and_stops() {
     .fetch_one(&pool)
     .await
     .unwrap();
-    assert!(good_exists.0, "tbl_good should exist (applied before the failure)");
+    assert!(
+        good_exists.0,
+        "tbl_good should exist (applied before the failure)"
+    );
 
     // tbl_later must NOT exist.
     let later_exists: (bool,) = sqlx::query_as(
@@ -393,7 +430,10 @@ async fn test_failing_migration_rolls_back_and_stops() {
     .fetch_one(&pool)
     .await
     .unwrap();
-    assert!(!later_exists.0, "tbl_later should NOT exist (after the failure, not applied)");
+    assert!(
+        !later_exists.0,
+        "tbl_later should NOT exist (after the failure, not applied)"
+    );
 
     // Only tbl_good's tracking row should exist.
     let rows: Vec<(String,)> = sqlx::query_as(&format!(
@@ -435,13 +475,24 @@ versions:
     let dir = TempDir::new().unwrap();
     let root = dir.path().to_path_buf();
     std::fs::create_dir_all(root.join("01_migrated").join("1")).unwrap();
-    std::fs::write(root.join("01_migrated").join("1").join("a_second.sql"), &sql_a).unwrap();
-    std::fs::write(root.join("01_migrated").join("1").join("b_first.sql"), &sql_b).unwrap();
+    std::fs::write(
+        root.join("01_migrated").join("1").join("a_second.sql"),
+        &sql_a,
+    )
+    .unwrap();
+    std::fs::write(
+        root.join("01_migrated").join("1").join("b_first.sql"),
+        &sql_b,
+    )
+    .unwrap();
     std::fs::write(root.join("migration-order.yaml"), yaml).unwrap();
 
     let driver = PostgresDriver::new(pool.clone(), pg_config(&schema)).unwrap();
     let migrator = Migrator::from_root(&root);
-    migrator.up(&driver).await.expect("manifest order should be honored (a before b)");
+    migrator
+        .up(&driver)
+        .await
+        .expect("manifest order should be honored (a before b)");
     guard.cleanup().await;
 }
 
@@ -460,9 +511,8 @@ async fn test_version_folders_ordered_numerically() {
         "INSERT INTO \"{schema}\".v1_tbl DEFAULT VALUES;\n-- DOWN ==\nDELETE FROM \"{schema}\".v1_tbl;"
     );
     // v10 depends on v2's row existing (row count = 1).
-    let sql_v10 = format!(
-        "UPDATE \"{schema}\".v1_tbl SET id = id WHERE id > 0;\n-- DOWN ==\nSELECT 1;"
-    );
+    let sql_v10 =
+        format!("UPDATE \"{schema}\".v1_tbl SET id = id WHERE id > 0;\n-- DOWN ==\nSELECT 1;");
 
     let yaml = r#"manifest_version: 1
 versions:
@@ -485,13 +535,20 @@ versions:
         (10, "v10.sql", sql_v10.as_str()),
     ] {
         std::fs::create_dir_all(root.join("01_migrated").join(v.to_string())).unwrap();
-        std::fs::write(root.join("01_migrated").join(v.to_string()).join(fname), content).unwrap();
+        std::fs::write(
+            root.join("01_migrated").join(v.to_string()).join(fname),
+            content,
+        )
+        .unwrap();
     }
     std::fs::write(root.join("migration-order.yaml"), yaml).unwrap();
 
     let driver = PostgresDriver::new(pool.clone(), pg_config(&schema)).unwrap();
     let migrator = Migrator::from_root(&root);
-    migrator.up(&driver).await.expect("numeric version ordering should work");
+    migrator
+        .up(&driver)
+        .await
+        .expect("numeric version ordering should work");
 
     let rows: Vec<(i32,)> = sqlx::query_as(&format!(
         "SELECT version FROM \"{schema}\".\"00_schema_migrations\" ORDER BY version"
@@ -510,9 +567,8 @@ async fn test_setup_runs_before_migrations_and_is_idempotent() {
     let schema = guard.schema.clone();
 
     // 00_setup creates a table; the migration uses it.
-    let setup_sql = format!(
-        "CREATE TABLE IF NOT EXISTS \"{schema}\".setup_marker (id SERIAL PRIMARY KEY);"
-    );
+    let setup_sql =
+        format!("CREATE TABLE IF NOT EXISTS \"{schema}\".setup_marker (id SERIAL PRIMARY KEY);");
     let migration_sql = format!(
         "INSERT INTO \"{schema}\".setup_marker DEFAULT VALUES;\n-- DOWN ==\nDELETE FROM \"{schema}\".setup_marker;"
     );
@@ -530,7 +586,10 @@ async fn test_setup_runs_before_migrations_and_is_idempotent() {
     migrator.up(&driver).await.expect("first up should succeed");
 
     // Second up(): setup runs again (idempotent), no new migration applied.
-    migrator.up(&driver).await.expect("second up should be a no-op");
+    migrator
+        .up(&driver)
+        .await
+        .expect("second up should be a no-op");
 
     let count: (i64,) = sqlx::query_as(&format!(
         "SELECT COUNT(*) FROM \"{schema}\".\"00_schema_migrations\""
@@ -561,15 +620,14 @@ async fn test_setup_files_never_orphan_flagged() {
     );
 
     // Write an extra file in 00_setup — it should NOT be flagged as an orphan.
-    std::fs::write(
-        f.root.join("00_setup").join("02_extra.sql"),
-        "SELECT 2;",
-    )
-    .unwrap();
+    std::fs::write(f.root.join("00_setup").join("02_extra.sql"), "SELECT 2;").unwrap();
 
     let driver = PostgresDriver::new(pool.clone(), pg_config(&schema)).unwrap();
     let migrator = Migrator::from_root(&f.root);
-    migrator.up(&driver).await.expect("extra setup file should not be an orphan");
+    migrator
+        .up(&driver)
+        .await
+        .expect("extra setup file should not be an orphan");
     guard.cleanup().await;
 }
 
@@ -581,8 +639,16 @@ async fn test_orphan_migration_returns_error() {
 
     let yaml = "manifest_version: 1\nversions:\n  - version: 1\n    migrations:\n      - file: \"listed.sql\"\n";
     std::fs::create_dir_all(root.join("01_migrated").join("1")).unwrap();
-    std::fs::write(root.join("01_migrated").join("1").join("listed.sql"), "SELECT 1;").unwrap();
-    std::fs::write(root.join("01_migrated").join("1").join("orphan.sql"), "SELECT 2;").unwrap();
+    std::fs::write(
+        root.join("01_migrated").join("1").join("listed.sql"),
+        "SELECT 1;",
+    )
+    .unwrap();
+    std::fs::write(
+        root.join("01_migrated").join("1").join("orphan.sql"),
+        "SELECT 2;",
+    )
+    .unwrap();
     std::fs::write(root.join("migration-order.yaml"), yaml).unwrap();
 
     let result = soma_schema::discovery::discover(&root);
@@ -629,22 +695,28 @@ versions:
 async fn test_identifier_validation() {
     // Invalid schema name should be rejected.
     let pool = make_pool().await;
-    let result = PostgresDriver::new(pool.clone(), PostgresConfig {
-        schema: Some("bad-schema".to_owned()),
-        table: "00_schema_migrations".to_owned(),
-        advisory_lock_key: 918273645,
-    });
+    let result = PostgresDriver::new(
+        pool.clone(),
+        PostgresConfig {
+            schema: Some("bad-schema".to_owned()),
+            table: "00_schema_migrations".to_owned(),
+            advisory_lock_key: 918273645,
+        },
+    );
     assert!(
         matches!(result, Err(Error::InvalidIdentifier(_))),
         "bad schema name should be rejected"
     );
 
     // Leading-digit names should be ALLOWED.
-    let ok = PostgresDriver::new(pool.clone(), PostgresConfig {
-        schema: Some("00_schema".to_owned()),
-        table: "00_schema_migrations".to_owned(),
-        advisory_lock_key: 918273645,
-    });
+    let ok = PostgresDriver::new(
+        pool.clone(),
+        PostgresConfig {
+            schema: Some("00_schema".to_owned()),
+            table: "00_schema_migrations".to_owned(),
+            advisory_lock_key: 918273645,
+        },
+    );
     assert!(ok.is_ok(), "leading-digit identifier should be accepted");
 }
 
@@ -665,25 +737,42 @@ versions:
     let dir = TempDir::new().unwrap();
     let root = dir.path().to_path_buf();
     std::fs::create_dir_all(root.join("01_migrated").join("1")).unwrap();
-    std::fs::write(root.join("01_migrated").join("1").join("20260101_01_init.sql"), &sql).unwrap();
+    std::fs::write(
+        root.join("01_migrated")
+            .join("1")
+            .join("20260101_01_init.sql"),
+        &sql,
+    )
+    .unwrap();
     std::fs::write(root.join("migration-order.yaml"), yaml).unwrap();
 
     let driver = PostgresDriver::new(pool.clone(), pg_config(&schema)).unwrap();
     let migrator = Migrator::from_root(&root);
     migrator.up(&driver).await.unwrap();
 
-    let row: (i32, String, Option<String>, i32, sqlx::types::chrono::DateTime<sqlx::types::chrono::Utc>, String, Option<i32>) =
-        sqlx::query_as(&format!(
-            "SELECT version, file, description, batch, applied_at, applied_by, execution_ms \
+    let row: (
+        i32,
+        String,
+        Option<String>,
+        i32,
+        sqlx::types::chrono::DateTime<sqlx::types::chrono::Utc>,
+        String,
+        Option<i32>,
+    ) = sqlx::query_as(&format!(
+        "SELECT version, file, description, batch, applied_at, applied_by, execution_ms \
              FROM \"{schema}\".\"00_schema_migrations\""
-        ))
-        .fetch_one(&pool)
-        .await
-        .unwrap();
+    ))
+    .fetch_one(&pool)
+    .await
+    .unwrap();
 
     assert_eq!(row.0, 1, "version");
     assert_eq!(row.1, "20260101_01_init.sql", "file");
-    assert_eq!(row.2.as_deref(), Some("Track metadata"), "description from why");
+    assert_eq!(
+        row.2.as_deref(),
+        Some("Track metadata"),
+        "description from why"
+    );
     assert_eq!(row.3, 1, "first batch");
     // applied_at should be recent (within last minute).
     let age = sqlx::types::chrono::Utc::now() - row.4;
@@ -773,10 +862,13 @@ async fn test_idempotent_seed_applied_once() {
 
     let f = MigrationsFixture::build(
         Some("SELECT 1;"),
-        &[(1, vec![
-            ("20260101_01_create.sql", &create_sql),
-            ("20260101_02_seed.sql", &seed_sql),
-        ])],
+        &[(
+            1,
+            vec![
+                ("20260101_01_create.sql", &create_sql),
+                ("20260101_02_seed.sql", &seed_sql),
+            ],
+        )],
         None,
     );
 
@@ -834,16 +926,30 @@ versions:
     let dir = TempDir::new().unwrap();
     let root = dir.path().to_path_buf();
     std::fs::create_dir_all(root.join("01_migrated").join("1")).unwrap();
-    std::fs::write(root.join("01_migrated").join("1").join("z_first.sql"), &sql_z).unwrap();
-    std::fs::write(root.join("01_migrated").join("1").join("a_second.sql"), &sql_a).unwrap();
+    std::fs::write(
+        root.join("01_migrated").join("1").join("z_first.sql"),
+        &sql_z,
+    )
+    .unwrap();
+    std::fs::write(
+        root.join("01_migrated").join("1").join("a_second.sql"),
+        &sql_a,
+    )
+    .unwrap();
     std::fs::write(root.join("migration-order.yaml"), yaml).unwrap();
 
     let driver = PostgresDriver::new(pool.clone(), pg_config(&schema)).unwrap();
     let migrator = Migrator::from_root(&root);
-    migrator.up(&driver).await.expect("up with non-alpha manifest order should succeed");
+    migrator
+        .up(&driver)
+        .await
+        .expect("up with non-alpha manifest order should succeed");
 
     // down(1) must revert a_second.sql (manifest position 1, last applied), NOT z_first.sql.
-    migrator.down(&driver, 1).await.expect("down 1 should succeed");
+    migrator
+        .down(&driver, 1)
+        .await
+        .expect("down 1 should succeed");
 
     // rev_order_z table should still exist (z_first.sql was NOT reverted).
     let tbl_exists: (bool,) = sqlx::query_as(
@@ -854,7 +960,10 @@ versions:
     .fetch_one(&pool)
     .await
     .unwrap();
-    assert!(tbl_exists.0, "rev_order_z should still exist after down(1) reverts a_second, not z_first");
+    assert!(
+        tbl_exists.0,
+        "rev_order_z should still exist after down(1) reverts a_second, not z_first"
+    );
 
     // Only z_first.sql row should remain in tracking table.
     let rows: Vec<(String,)> = sqlx::query_as(&format!(
@@ -864,7 +973,10 @@ versions:
     .await
     .unwrap();
     assert_eq!(rows.len(), 1);
-    assert_eq!(rows[0].0, "z_first.sql", "z_first.sql should still be in tracking after down(1)");
+    assert_eq!(
+        rows[0].0, "z_first.sql",
+        "z_first.sql should still be in tracking after down(1)"
+    );
     guard.cleanup().await;
 }
 
@@ -877,10 +989,18 @@ async fn test_orphan_in_unregistered_version_folder_returns_error() {
     // Manifest only knows about version 1.
     let yaml = "manifest_version: 1\nversions:\n  - version: 1\n    migrations:\n      - file: \"ok.sql\"\n";
     std::fs::create_dir_all(root.join("01_migrated").join("1")).unwrap();
-    std::fs::write(root.join("01_migrated").join("1").join("ok.sql"), "SELECT 1;").unwrap();
+    std::fs::write(
+        root.join("01_migrated").join("1").join("ok.sql"),
+        "SELECT 1;",
+    )
+    .unwrap();
     // Version 99 folder exists on disk but is NOT in the manifest.
     std::fs::create_dir_all(root.join("01_migrated").join("99")).unwrap();
-    std::fs::write(root.join("01_migrated").join("99").join("surprise.sql"), "SELECT 99;").unwrap();
+    std::fs::write(
+        root.join("01_migrated").join("99").join("surprise.sql"),
+        "SELECT 99;",
+    )
+    .unwrap();
     std::fs::write(root.join("migration-order.yaml"), yaml).unwrap();
 
     let result = soma_schema::discovery::discover(&root);
@@ -909,7 +1029,13 @@ async fn test_applied_but_missing_from_manifest_returns_error() {
     migrator.up(&driver).await.unwrap();
 
     // Now remove the migration file AND the manifest entry, leaving the DB row orphaned.
-    std::fs::remove_file(f.root.join("01_migrated").join("1").join("20260101_01_init.sql")).unwrap();
+    std::fs::remove_file(
+        f.root
+            .join("01_migrated")
+            .join("1")
+            .join("20260101_01_init.sql"),
+    )
+    .unwrap();
     std::fs::write(
         f.root.join("migration-order.yaml"),
         "manifest_version: 1\nversions:\n  - version: 1\n    migrations: []\n",

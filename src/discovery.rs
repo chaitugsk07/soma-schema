@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 
 use crate::error::{Error, Result};
 use crate::manifest::Manifest;
-use crate::migration::{Migration, SetupFile, read_and_checksum};
+use crate::migration::{read_and_checksum, Migration, SetupFile};
 
 /// Load migration metadata (checksums only — no SQL content) and setup file paths.
 ///

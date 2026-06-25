@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use sqlx::{PgPool, postgres::PgConnection, Connection};
+use sqlx::{postgres::PgConnection, Connection, PgPool};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -10,11 +10,7 @@ use crate::migration::Migration;
 /// Validate that an identifier contains only [A-Za-z0-9_].
 /// A leading digit is allowed (e.g. `00_schema_migrations`).
 fn validate_ident(s: &str) -> Result<()> {
-    if s.is_empty()
-        || !s
-            .chars()
-            .all(|c| c.is_ascii_alphanumeric() || c == '_')
-    {
+    if s.is_empty() || !s.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
         return Err(Error::InvalidIdentifier(s.to_owned()));
     }
     Ok(())
@@ -213,14 +209,27 @@ impl MigrationDriver for PostgresDriver {
             "SELECT version, file, name, checksum, description, batch, applied_at, applied_by, execution_ms \
              FROM {qt} ORDER BY version ASC, file ASC"
         );
-        let rows = sqlx::query_as::<_, (i32, String, String, String, Option<String>, i32, DateTime<Utc>, String, Option<i32>)>(&sql)
-            .fetch_all(&self.pool)
-            .await?;
+        let rows = sqlx::query_as::<
+            _,
+            (
+                i32,
+                String,
+                String,
+                String,
+                Option<String>,
+                i32,
+                DateTime<Utc>,
+                String,
+                Option<i32>,
+            ),
+        >(&sql)
+        .fetch_all(&self.pool)
+        .await?;
         Ok(rows
             .into_iter()
-            .map(|(version, file, name, checksum, description, batch, applied_at, applied_by, execution_ms)| {
-                AppliedMigration {
-                    version: version as u32,
+            .map(
+                |(
+                    version,
                     file,
                     name,
                     checksum,
@@ -229,8 +238,20 @@ impl MigrationDriver for PostgresDriver {
                     applied_at,
                     applied_by,
                     execution_ms,
-                }
-            })
+                )| {
+                    AppliedMigration {
+                        version: version as u32,
+                        file,
+                        name,
+                        checksum,
+                        description,
+                        batch,
+                        applied_at,
+                        applied_by,
+                        execution_ms,
+                    }
+                },
+            )
             .collect())
     }
 

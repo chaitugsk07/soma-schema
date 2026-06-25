@@ -26,8 +26,7 @@ pub struct ManifestEntry {
 
 /// Validate that `file` is a bare filename: ends in .sql, no path separators, no "..".
 fn validate_filename(file: &str) -> Result<()> {
-    if file.contains('/') || file.contains('\\') || file.contains("..") || !file.ends_with(".sql")
-    {
+    if file.contains('/') || file.contains('\\') || file.contains("..") || !file.ends_with(".sql") {
         return Err(Error::InvalidFileName(file.to_owned()));
     }
     Ok(())
@@ -44,7 +43,9 @@ impl Manifest {
             serde_yml::from_str(yaml).map_err(|e| Error::ManifestParse(e.to_string()))?;
 
         if manifest.manifest_version != 1 {
-            return Err(Error::UnsupportedManifestVersion { found: manifest.manifest_version });
+            return Err(Error::UnsupportedManifestVersion {
+                found: manifest.manifest_version,
+            });
         }
 
         let mut seen: HashSet<(u32, &str)> = HashSet::new();

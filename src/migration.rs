@@ -20,7 +20,11 @@ pub(crate) fn read_and_checksum(path: &std::path::Path) -> Result<(String, Strin
     for chunk in raw.as_bytes().chunks(CHECKSUM_CHUNK) {
         hasher.update(chunk);
     }
-    let hex: String = hasher.finalize().iter().map(|b| format!("{b:02x}")).collect();
+    let hex: String = hasher
+        .finalize()
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect();
     Ok((hex, raw))
 }
 
@@ -42,7 +46,11 @@ fn split_up_down(raw: &str) -> (String, Option<String>) {
         }
     }
     let up_sql = up_lines.join("\n");
-    let down_sql = if in_down { Some(down_lines.join("\n")) } else { None };
+    let down_sql = if in_down {
+        Some(down_lines.join("\n"))
+    } else {
+        None
+    };
     (up_sql, down_sql)
 }
 
@@ -185,7 +193,15 @@ mod tests {
         let raw = "CREATE TABLE t (id INT);\n-- DOWN ==\nDROP TABLE t;";
         let (_tmp, path) = write_temp(raw);
         let (checksum, file_raw) = read_and_checksum(&path).unwrap();
-        let m = Migration::from_metadata(1, "20260101_01_init.sql", checksum, file_raw, None, None, None);
+        let m = Migration::from_metadata(
+            1,
+            "20260101_01_init.sql",
+            checksum,
+            file_raw,
+            None,
+            None,
+            None,
+        );
         drop(path); // no longer needed after read_and_checksum
         let (up, down) = m.read_up();
         assert_eq!(up, "CREATE TABLE t (id INT);");
@@ -198,7 +214,15 @@ mod tests {
         let raw = "CREATE TABLE t (id INT);";
         let (_tmp, path) = write_temp(raw);
         let (checksum, file_raw) = read_and_checksum(&path).unwrap();
-        let m = Migration::from_metadata(1, "20260101_01_init.sql", checksum, file_raw, None, None, None);
+        let m = Migration::from_metadata(
+            1,
+            "20260101_01_init.sql",
+            checksum,
+            file_raw,
+            None,
+            None,
+            None,
+        );
         drop(path); // no longer needed after read_and_checksum
         let (up, down) = m.read_up();
         assert_eq!(up, "CREATE TABLE t (id INT);");
@@ -211,7 +235,15 @@ mod tests {
         let raw = "CREATE TABLE t (id INT);\n-- DOWN ==\nDROP TABLE t;";
         let (_tmp, path) = write_temp(raw);
         let (checksum, file_raw) = read_and_checksum(&path).unwrap();
-        let m = Migration::from_metadata(1, "20260101_01_init.sql", checksum, file_raw, None, None, None);
+        let m = Migration::from_metadata(
+            1,
+            "20260101_01_init.sql",
+            checksum,
+            file_raw,
+            None,
+            None,
+            None,
+        );
         assert_eq!(m.up(), "CREATE TABLE t (id INT);");
         assert_eq!(m.down().as_deref(), Some("DROP TABLE t;"));
     }
@@ -221,7 +253,15 @@ mod tests {
         let raw = "CREATE TABLE t (id INT);";
         let (_tmp, path) = write_temp(raw);
         let (checksum, file_raw) = read_and_checksum(&path).unwrap();
-        let m = Migration::from_metadata(1, "20260101_01_init.sql", checksum, file_raw, None, None, None);
+        let m = Migration::from_metadata(
+            1,
+            "20260101_01_init.sql",
+            checksum,
+            file_raw,
+            None,
+            None,
+            None,
+        );
         assert_eq!(m.up(), "CREATE TABLE t (id INT);");
         assert!(m.down().is_none());
     }
