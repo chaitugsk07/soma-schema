@@ -72,7 +72,7 @@ jobs:
         working-directory: soma-schema/docs
         run: |
           zola build \
-            --base-url https://chaitugsk07.github.io/soma-schema/docs/ \
+            --base-url https://chaitugsk07.github.io/soma-schema/docs \
             --output-dir ../website/dist/docs
 
       - name: Upload Pages artifact

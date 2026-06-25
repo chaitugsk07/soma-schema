@@ -1,4 +1,5 @@
 use leptos::prelude::*;
+use leptos_router::components::A;
 use soma_ui::CodeBlock;
 use soma_ui::{use_clipboard, UseClipboardReturn};
 
@@ -39,9 +40,9 @@ pub fn LandingPage() -> impl IntoView {
                             >
                                 "cargo add soma-schema"
                             </a>
-                            <a href="/explorer" class="btn-ghost">
+                            <A href="/explorer" attr:class="btn-ghost">
                                 "Explore migrations \u{2192}"
-                            </a>
+                            </A>
                         </div>
                     </div>
 
@@ -339,7 +340,7 @@ pub fn LandingPage() -> impl IntoView {
                         <p class="ai-native-skill-hint mt-5">
                             "Claude Code users also get a /soma-schema slash-command skill \u{2014} "
                             <a
-                                href="/docs/use-with-ai/"
+                                href=crate::app::docs_url("use-with-ai/")
                                 class="ai-native-docs-link"
                             >
                                 "see the docs \u{2192}"

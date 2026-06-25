@@ -14,7 +14,7 @@ use crate::pages::{landing::LandingPage, explorer::ExplorerPage};
 /// Trunk sets `<base href="/soma-schema/">` for GitHub Pages builds and
 /// `<base href="/">` for local dev; the router base strips the trailing slash
 /// so routes defined as `/` and `/explorer` match correctly under both.
-fn router_base() -> std::borrow::Cow<'static, str> {
+pub(crate) fn router_base() -> std::borrow::Cow<'static, str> {
     let base = (|| -> Option<String> {
         let doc = document();
         let el = doc.query_selector("base").ok()??;
@@ -40,6 +40,15 @@ fn router_base() -> std::borrow::Cow<'static, str> {
         Some(path.trim_end_matches('/').to_string())
     })();
     std::borrow::Cow::Owned(base.unwrap_or_default())
+}
+
+/// Build a URL to a page in the separate static docs site.
+///
+/// `rel` is a path relative to the docs root, e.g. `""` or `"use-with-ai/"`.
+/// On GitHub Pages this returns `/soma-schema/docs/<rel>`;
+/// on local dev it returns `/docs/<rel>`.
+pub(crate) fn docs_url(rel: &str) -> String {
+    format!("{}/docs/{}", router_base(), rel)
 }
 
 #[component]
@@ -86,7 +95,7 @@ fn SiteFooter() -> impl IntoView {
                         >
                             "GitHub"
                         </a>
-                        <a href="/docs/" class="footer-link">"Docs"</a>
+                        <a href=docs_url("") class="footer-link">"Docs"</a>
                         <a
                             href="https://crates.io/crates/soma-schema"
                             target="_blank"
@@ -140,6 +149,7 @@ fn Nav() -> impl IntoView {
                 <nav class="hidden sm:flex items-center gap-5" aria-label="Main navigation">
                     <NavLink href="/" label="Home" />
                     <NavLink href="/explorer" label="Explorer" />
+                    <a href=docs_url("") class="nav-link">"Docs"</a>
                     <a
                         href="https://github.com/chaitugsk07/soma-schema"
                         target="_blank"
@@ -170,6 +180,7 @@ fn Nav() -> impl IntoView {
                 <nav class="nav-mobile-drawer sm:hidden" aria-label="Mobile navigation">
                     <NavLink href="/" label="Home" />
                     <NavLink href="/explorer" label="Explorer" />
+                    <a href=docs_url("") class="nav-link">"Docs"</a>
                     <a
                         href="https://github.com/chaitugsk07/soma-schema"
                         target="_blank"
