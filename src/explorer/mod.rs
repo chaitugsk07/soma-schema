@@ -81,6 +81,13 @@ struct Relation {
 }
 
 #[derive(Serialize)]
+struct SeedTable {
+    table: String,
+    columns: Vec<String>,
+    rows: Vec<Vec<String>>,
+}
+
+#[derive(Serialize)]
 struct Schema {
     tables: Vec<TableDef>,
     relations: Vec<Relation>,
@@ -94,6 +101,7 @@ struct Output {
     rollback_order: Vec<OrderEntry>,
     setup_files: Vec<String>,
     schema: Schema,
+    seed_data: Vec<SeedTable>,
 }
 
 // ── schema builder ────────────────────────────────────────────────────────────
@@ -450,6 +458,10 @@ fn compute_layout(tables: &BTreeMap<String, TableBuf>) -> HashMap<String, (i64, 
     positions
 }
 
+// ponytail: only handles INSERT … (columns) VALUES (…) — not INSERT … SELECT or
+// columnless inserts. That's sufficient for the seed-migration convention (explicit
+// column lists required). Upgrade path: match more Insert variants if needed.
+
 /// Returns true if the SQL contains only data statements (≥1 INSERT, no DDL).
 fn is_seed_sql(sql: &str) -> bool {
     let dialect = PostgreSqlDialect {};
@@ -471,6 +483,62 @@ fn is_seed_sql(sql: &str) -> bool {
         }
     }
     has_insert
+}
+
+/// Render a sqlparser Expr to a display string.
+/// String literals are unquoted; everything else uses Display.
+fn render_value(expr: &sqlparser::ast::Expr) -> String {
+    use sqlparser::ast::{Expr, Value};
+    match expr {
+        Expr::Value(Value::SingleQuotedString(s)) => s.clone(),
+        Expr::Value(Value::Null) => "NULL".to_owned(),
+        _ => expr.to_string(),
+    }
+}
+
+/// Parse INSERT statements from UP SQL and accumulate into `order` (table insertion order)
+/// and `data` (table → (columns, rows)).
+fn collect_seed_data(
+    sql: &str,
+    order: &mut Vec<String>,
+    data: &mut std::collections::HashMap<String, (Vec<String>, Vec<Vec<String>>)>,
+) {
+    let dialect = PostgreSqlDialect {};
+    let stmts = match Parser::parse_sql(&dialect, sql) {
+        Ok(s) => s,
+        Err(_) => return,
+    };
+    for stmt in stmts {
+        let Statement::Insert(insert) = stmt else {
+            continue;
+        };
+        let (_, tname) = split_table_name(&insert.table_name);
+        if tname.is_empty() {
+            continue;
+        }
+        let cols: Vec<String> = insert.columns.iter().map(|c| c.value.clone()).collect();
+        if cols.is_empty() {
+            continue;
+        }
+        let rows: Vec<Vec<String>> = {
+            let Some(src) = insert.source else { continue };
+            let sqlparser::ast::SetExpr::Values(vals) = *src.body else {
+                continue;
+            };
+            vals.rows
+                .iter()
+                .map(|row| row.iter().map(render_value).collect())
+                .collect()
+        };
+        if rows.is_empty() {
+            continue;
+        }
+        let entry = data.entry(tname.clone()).or_insert_with(|| {
+            order.push(tname.clone());
+            (cols, Vec::new())
+        });
+        entry.1.extend(rows);
+    }
 }
 
 /// Build the `Output` struct from `root`, serialise to pretty JSON.
@@ -561,6 +629,39 @@ pub fn build_json(root: &Path) -> crate::Result<String> {
         })
         .collect();
 
+    // Collect seed data from seed migrations
+    let mut seed_order: Vec<String> = Vec::new();
+    let mut seed_data_map: std::collections::HashMap<String, (Vec<String>, Vec<Vec<String>>)> =
+        std::collections::HashMap::new();
+    for m in &migrations {
+        let up = m.up();
+        if is_seed_sql(&up) {
+            collect_seed_data(&up, &mut seed_order, &mut seed_data_map);
+        }
+    }
+    // Order seed tables to match schema table order, appending any extras at the end
+    let schema_table_names: Vec<String> = tables.iter().map(|t| t.name.clone()).collect();
+    let mut ordered: Vec<String> = schema_table_names
+        .iter()
+        .filter(|n| seed_data_map.contains_key(*n))
+        .cloned()
+        .collect();
+    for t in &seed_order {
+        if !ordered.contains(t) {
+            ordered.push(t.clone());
+        }
+    }
+    let seed_data: Vec<SeedTable> = ordered
+        .into_iter()
+        .filter_map(|tname| {
+            seed_data_map.remove(&tname).map(|(cols, rows)| SeedTable {
+                table: tname,
+                columns: cols,
+                rows,
+            })
+        })
+        .collect();
+
     let output = Output {
         generated_for: root.display().to_string(),
         versions,
@@ -568,6 +669,7 @@ pub fn build_json(root: &Path) -> crate::Result<String> {
         rollback_order,
         setup_files: setup_files.into_iter().map(|s| s.name).collect(),
         schema: Schema { tables, relations },
+        seed_data,
     };
 
     serde_json::to_string_pretty(&output).map_err(|e| crate::Error::Explorer(e.to_string()))
@@ -579,4 +681,56 @@ pub fn build_json(root: &Path) -> crate::Result<String> {
 pub fn render_html(root: &Path) -> crate::Result<String> {
     let json = build_json(root)?;
     Ok(include_str!("viewer.html").replace("__SOMA_DATA__", &json))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn insert_only_up_is_seed() {
+        let sql = "INSERT INTO s.t (a, b) VALUES ('x', 1), ('y', 2);";
+        assert!(is_seed_sql(sql));
+    }
+
+    #[test]
+    fn create_table_up_is_not_seed() {
+        let sql = "CREATE TABLE foo (id SERIAL PRIMARY KEY);";
+        assert!(!is_seed_sql(sql));
+    }
+
+    #[test]
+    fn collect_seed_data_parses_insert() {
+        let sql = "INSERT INTO s.t (a, b) VALUES ('x', 1), ('y', 2);";
+        let mut order: Vec<String> = Vec::new();
+        let mut data: std::collections::HashMap<String, (Vec<String>, Vec<Vec<String>>)> =
+            std::collections::HashMap::new();
+        collect_seed_data(sql, &mut order, &mut data);
+
+        assert_eq!(order, vec!["t"]);
+        let (cols, rows) = data.get("t").expect("table t must be present");
+        assert_eq!(cols, &["a", "b"]);
+        assert_eq!(rows.len(), 2);
+        // Single-quoted string 'x' should be rendered unquoted as x
+        assert_eq!(rows[0][0], "x");
+        assert_eq!(rows[1][0], "y");
+    }
+
+    #[test]
+    fn create_table_contributes_no_seed_rows() {
+        let sql = "CREATE TABLE foo (id SERIAL PRIMARY KEY);";
+        let mut order: Vec<String> = Vec::new();
+        let mut data: std::collections::HashMap<String, (Vec<String>, Vec<Vec<String>>)> =
+            std::collections::HashMap::new();
+        collect_seed_data(sql, &mut order, &mut data);
+        assert!(order.is_empty());
+        assert!(data.is_empty());
+    }
+
+    #[test]
+    fn render_value_unquotes_string() {
+        use sqlparser::ast::{Expr, Value};
+        let expr = Expr::Value(Value::SingleQuotedString("hello".to_owned()));
+        assert_eq!(render_value(&expr), "hello");
+    }
 }

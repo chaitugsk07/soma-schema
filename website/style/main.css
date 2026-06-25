@@ -1601,3 +1601,45 @@ body {
     transform: none !important;
   }
 }
+
+/* ── Seed data view ──────────────────────────────────────────────────────── */
+.seed-table-card {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.5rem;
+  margin-bottom: 1.5rem;
+  overflow: hidden;
+}
+.seed-table-title {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  font-family: var(--font-mono, monospace);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: hsl(var(--primary));
+  background: hsl(var(--muted) / 0.4);
+  border-bottom: 1px solid hsl(var(--border));
+}
+.seed-row-count {
+  font-family: var(--font-heading);
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: hsl(var(--muted-foreground));
+  text-transform: none;
+}
+.seed-table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+/* Uppercase Rajdhani column headers for seed tables */
+.seed-table-th {
+  font-family: var(--font-heading) !important;
+  font-size: 0.62rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.14em !important;
+  text-transform: uppercase !important;
+  color: hsl(var(--muted-foreground)) !important;
+}

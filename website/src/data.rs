@@ -90,6 +90,14 @@ pub struct Schema {
 
 #[allow(dead_code)]
 #[derive(Deserialize, Clone, Debug)]
+pub struct SeedTable {
+    pub table: String,
+    pub columns: Vec<String>,
+    pub rows: Vec<Vec<String>>,
+}
+
+#[allow(dead_code)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct MigrationsData {
     pub generated_for: String,
     pub versions: Vec<VersionBlock>,
@@ -98,12 +106,18 @@ pub struct MigrationsData {
     pub setup_files: Vec<String>,
     #[serde(default)]
     pub schema: Schema,
+    #[serde(default)]
+    pub seed_data: Vec<SeedTable>,
 }
 
 static MIGRATIONS_JSON: &str = include_str!("../data/migrations.json");
 
 pub fn load_migrations() -> MigrationsData {
     serde_json::from_str(MIGRATIONS_JSON).expect("invalid migrations.json")
+}
+
+pub fn load_seed_data() -> Vec<SeedTable> {
+    load_migrations().seed_data
 }
 
 pub fn load_schema() -> (Vec<SchemaTable>, Vec<SchemaRelation>) {

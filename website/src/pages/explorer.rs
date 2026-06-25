@@ -1,6 +1,6 @@
 use leptos::prelude::*;
-use soma_ui::{CodeBlock, SchemaDiagram};
-use crate::data::{load_migrations, load_schema, MigrationEntry, VersionBlock};
+use soma_ui::{CodeBlock, SchemaDiagram, Table, TableBody, TableCell, TableHead, TableHeader, TableRow};
+use crate::data::{load_migrations, load_schema, load_seed_data, MigrationEntry, SeedTable, VersionBlock};
 
 // ── Single collapsible migration card ───────────────────────────────────────
 #[component]
@@ -225,6 +225,127 @@ fn SchemaView() -> impl IntoView {
     }
 }
 
+/// If `s` looks like a UUID (8-4-4-4-12 hex), return first 8 chars + … + last 4.
+/// Otherwise return the original string unchanged.
+fn short_val(s: &str) -> String {
+    // UUID pattern: 8-4-4-4-12 hex digits separated by hyphens
+    let is_uuid = s.len() == 36
+        && s.as_bytes()[8] == b'-'
+        && s.as_bytes()[13] == b'-'
+        && s.as_bytes()[18] == b'-'
+        && s.as_bytes()[23] == b'-'
+        && s.chars().enumerate().all(|(i, c)| {
+            i == 8 || i == 13 || i == 18 || i == 23 || c.is_ascii_hexdigit()
+        });
+    if is_uuid {
+        format!("{}\u{2026}{}", &s[..8], &s[32..])
+    } else {
+        s.to_owned()
+    }
+}
+
+// ── Data view (seed rows as tables) ──────────────────────────────────────────
+#[component]
+fn DataView() -> impl IntoView {
+    let (tables, _) = load_schema();
+    let seed_data = load_seed_data();
+
+    view! {
+        <div class="landing-container">
+            {tables.into_iter().map(|t| {
+                let table_name = t.name.clone();
+                let seed: Option<SeedTable> = seed_data.iter().find(|s| s.table == table_name).cloned();
+                let display_name = format!("vault.{table_name}");
+
+                let row_count = seed.as_ref().map(|s| s.rows.len()).unwrap_or(0);
+                let row_label = if row_count == 0 {
+                    "\u{00B7} no seed data".to_string()
+                } else if row_count == 1 {
+                    "\u{00B7} 1 row".to_string()
+                } else {
+                    format!("\u{00B7} {row_count} rows")
+                };
+
+                let (columns, rows, has_data) = match seed {
+                    Some(s) => {
+                        let cols = s.columns.clone();
+                        let rows = s.rows.clone();
+                        (cols, rows, true)
+                    }
+                    None => {
+                        let cols: Vec<String> = t.columns.iter().map(|c| c.name.clone()).collect();
+                        (cols, vec![], false)
+                    }
+                };
+
+                let header_cols = columns.clone();
+                view! {
+                    <div class="seed-table-card">
+                        <div class="seed-table-title">
+                            {display_name}
+                            <span class="seed-row-count">{row_label}</span>
+                        </div>
+                        <div class="seed-table-scroll">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        {header_cols.into_iter().map(|col| {
+                                            view! { <TableHead class="seed-table-th".to_string()>{col}</TableHead> }
+                                        }).collect_view()}
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {if has_data {
+                                        rows.into_iter().map(|row| {
+                                            let row_cols = columns.clone();
+                                            view! {
+                                                <TableRow>
+                                                    {row.into_iter().enumerate().map(|(i, cell)| {
+                                                        let is_id_col = row_cols.get(i)
+                                                            .map(|c| c == "id" || c.ends_with("_id"))
+                                                            .unwrap_or(false);
+                                                        let display = short_val(&cell);
+                                                        let is_truncated = display != cell;
+                                                        let full = cell.clone();
+                                                        view! {
+                                                            <TableCell>
+                                                                {if is_id_col {
+                                                                    view! {
+                                                                        <span
+                                                                            style="font-family: var(--font-mono, monospace); font-size: 0.8em; color: hsl(var(--muted-foreground));"
+                                                                            title=if is_truncated { full } else { String::new() }
+                                                                        >{display}</span>
+                                                                    }.into_any()
+                                                                } else {
+                                                                    view! { <span title=if is_truncated { full } else { String::new() }>{display}</span> }.into_any()
+                                                                }}
+                                                            </TableCell>
+                                                        }
+                                                    }).collect_view()}
+                                                </TableRow>
+                                            }
+                                        }).collect_view().into_any()
+                                    } else {
+                                        view! {
+                                            <TableRow>
+                                                <TableCell>
+                                                    <span style="color: hsl(var(--muted-foreground)); font-style: italic; font-size: 0.875rem;">
+                                                        "No seed data"
+                                                    </span>
+                                                </TableCell>
+                                            </TableRow>
+                                        }.into_any()
+                                    }}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    </div>
+                }
+            }).collect_view()}
+        </div>
+    }
+}
+
 // ── Main Explorer Page ───────────────────────────────────────────────────────
 #[component]
 pub fn ExplorerPage() -> impl IntoView {
@@ -239,7 +360,7 @@ pub fn ExplorerPage() -> impl IntoView {
             // ── HERO (reactive heading) ───────────────────────────────────
             <div class="landing-container pt-14 pb-8">
                 <span class="explorer-hero-eyebrow">"Migration Explorer"</span>
-                // FIX 3: heading and subtitle are reactive to view_mode
+                // heading and subtitle are reactive to view_mode
                 {move || {
                     if view_mode.get() == "Timeline" {
                         view! {
@@ -257,7 +378,7 @@ pub fn ExplorerPage() -> impl IntoView {
                                 </p>
                             </div>
                         }.into_any()
-                    } else {
+                    } else if view_mode.get() == "Schema" {
                         view! {
                             <div>
                                 <h1 class="explorer-hero-title">
@@ -266,6 +387,15 @@ pub fn ExplorerPage() -> impl IntoView {
                                 <p class="explorer-hero-sub mt-3">
                                     "Every table and foreign key these migrations create. "
                                     "Drag tables to rearrange, scroll to zoom, hover a table to trace its relationships."
+                                </p>
+                            </div>
+                        }.into_any()
+                    } else {
+                        view! {
+                            <div>
+                                <h1 class="explorer-hero-title">"Seed data"</h1>
+                                <p class="explorer-hero-sub mt-3">
+                                    "The rows your seed migrations insert \u{2014} your database, in table form."
                                 </p>
                             </div>
                         }.into_any()
@@ -300,6 +430,19 @@ pub fn ExplorerPage() -> impl IntoView {
                     >
                         "\u{229E} Schema"
                     </button>
+                    <button
+                        class=move || {
+                            if view_mode.get() == "Data" {
+                                "view-toggle-btn view-toggle-btn-active"
+                            } else {
+                                "view-toggle-btn"
+                            }
+                        }
+                        aria-pressed=move || (view_mode.get() == "Data").to_string()
+                        on:click=move |_| view_mode.set("Data".to_string())
+                    >
+                        "\u{229F} Data"
+                    </button>
                 </div>
             </div>
 
@@ -307,6 +450,8 @@ pub fn ExplorerPage() -> impl IntoView {
             {move || {
                 if view_mode.get() == "Schema" {
                     view! { <SchemaView /> }.into_any()
+                } else if view_mode.get() == "Data" {
+                    view! { <DataView /> }.into_any()
                 } else {
                     let versions = versions.clone();
                     let setup_files = setup_files.clone();
