@@ -5,6 +5,7 @@ use crate::error::Result;
 use crate::migration::Migration;
 
 /// A deployed migration row from the tracking table.
+#[non_exhaustive]
 #[derive(Debug)]
 pub struct AppliedMigration {
     pub version: u32,
@@ -16,6 +17,39 @@ pub struct AppliedMigration {
     pub applied_at: DateTime<Utc>,
     pub applied_by: String,
     pub execution_ms: Option<i32>,
+}
+
+impl AppliedMigration {
+    /// Construct a tracking-table row.
+    ///
+    /// Driver implementations use this inside `applied()` to build rows from
+    /// whatever backing store they query. The `#[non_exhaustive]` attribute on
+    /// the struct means struct-literal syntax is unavailable to external crates;
+    /// this constructor is the supported path for building `AppliedMigration` values.
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        version: u32,
+        file: String,
+        name: String,
+        checksum: String,
+        description: Option<String>,
+        batch: i32,
+        applied_at: DateTime<Utc>,
+        applied_by: String,
+        execution_ms: Option<i32>,
+    ) -> Self {
+        Self {
+            version,
+            file,
+            name,
+            checksum,
+            description,
+            batch,
+            applied_at,
+            applied_by,
+            execution_ms,
+        }
+    }
 }
 
 /// A lock guard. Releases the advisory lock on Drop.

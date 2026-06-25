@@ -67,8 +67,9 @@ pub fn App() -> impl IntoView {
         <style>{STYLES}</style>
         <Router base=base>
             <div class="flex flex-col min-h-screen page-atmosphere">
+                <a class="skip-link" href="#main-content">"Skip to content"</a>
                 <Nav />
-                <main class="flex-1">
+                <main id="main-content" class="flex-1">
                     <Routes fallback=|| view! { <p class="text-muted-foreground p-8">"Not found"</p> }>
                         <Route path=path!("/") view=LandingPage />
                         <Route path=path!("/explorer") view=ExplorerPage />

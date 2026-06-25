@@ -93,12 +93,31 @@ All are re-exported at the crate root.
 
 ## Error handling
 
-soma-schema uses a typed `Error` enum. The variants you are most likely to encounter at runtime:
+soma-schema uses a typed `Error` enum. `Error` is `#[non_exhaustive]`, so match arms must include a wildcard.
 
-- `ChecksumDrift { file, expected, actual }` — a file on disk does not match the checksum stored when it was applied. The run is aborted before any migration executes.
-- `OrphanMigration { file }` — a `.sql` file exists on disk with no corresponding manifest entry.
-- `MissingFile { file }` — a manifest entry has no corresponding file on disk.
+The variants you are most likely to encounter at runtime:
+
+- `ChecksumDrift { version: u32, file: String }` — the on-disk file no longer matches the checksum recorded when it was applied. The run aborts before any migration executes.
+- `OrphanMigration { path: String }` — a `.sql` file exists on disk with no corresponding manifest entry.
+- `MissingFile { version: u32, file: String }` — a manifest entry has no corresponding file on disk.
 - `PoolTooSmall` — `max_connections < 2`.
+
+```rust
+match migrator.up(&driver).await {
+    Ok(_) => {}
+    Err(soma_schema::Error::ChecksumDrift { version, file }) => {
+        eprintln!("drift in v{version}/{file} — restore the original file");
+    }
+    Err(soma_schema::Error::OrphanMigration { path }) => {
+        eprintln!("unlisted file: {path} — add it to migration-order.yaml");
+    }
+    Err(soma_schema::Error::MissingFile { version, file }) => {
+        eprintln!("manifest entry v{version}/{file} has no file on disk");
+    }
+    Err(e) => return Err(e.into()),
+    _ => {}
+}
+```
 
 Handle `ChecksumDrift` as a deployment error; it should never occur in a correctly managed workflow.
 

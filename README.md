@@ -1,5 +1,6 @@
 # soma-schema
 
+[![CI](https://github.com/chaitugsk07/soma-schema/actions/workflows/ci.yml/badge.svg)](https://github.com/chaitugsk07/soma-schema/actions/workflows/ci.yml)
 [![Crates.io](https://img.shields.io/crates/v/soma-schema?style=flat-square)](https://crates.io/crates/soma-schema)
 [![docs.rs](https://img.shields.io/docsrs/soma-schema?style=flat-square)](https://docs.rs/soma-schema)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue?style=flat-square)](LICENSE)

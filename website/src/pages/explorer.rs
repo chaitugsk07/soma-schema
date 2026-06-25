@@ -68,7 +68,34 @@ fn MigrationCard(order_num: usize, migration: MigrationEntry) -> impl IntoView {
                         </div>
                     </div>
                     // UP / DOWN tab bar
-                    <div class="lineage-tabs-list" role="tablist" aria-label="SQL sections">
+                    <div
+                        class="lineage-tabs-list"
+                        role="tablist"
+                        aria-label="SQL sections"
+                        on:keydown=move |ev: web_sys::KeyboardEvent| {
+                            let tabs = ["up", "down"];
+                            let current = tab.get();
+                            let current_idx = tabs.iter().position(|&t| t == current).unwrap_or(0);
+                            let next_idx = match ev.key().as_str() {
+                                "ArrowRight" => (current_idx + 1) % tabs.len(),
+                                "ArrowLeft"  => (current_idx + tabs.len() - 1) % tabs.len(),
+                                _ => return,
+                            };
+                            ev.prevent_default();
+                            let next_tab = tabs[next_idx].to_string();
+                            tab.set(next_tab.clone());
+                            // Move focus to the newly-active tab button
+                            if let Some(doc) = web_sys::window().and_then(|w| w.document()) {
+                                let id = format!("tab-{}-{order_num}", next_tab);
+                                if let Some(el) = doc.get_element_by_id(&id) {
+                                    use web_sys::wasm_bindgen::JsCast;
+                                    if let Ok(btn) = el.dyn_into::<web_sys::HtmlElement>() {
+                                        let _ = btn.focus();
+                                    }
+                                }
+                            }
+                        }
+                    >
                         <button
                             role="tab"
                             id=format!("tab-up-{order_num}")

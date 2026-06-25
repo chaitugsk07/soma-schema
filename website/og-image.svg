@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <!-- Dark control-room background -->
+  <defs>
+    <radialGradient id="bg-glow" cx="60%" cy="20%" r="60%">
+      <stop offset="0%" stop-color="#1e40af" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#090b12" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="green-glow" cx="15%" cy="80%" r="40%">
+      <stop offset="0%" stop-color="#065f46" stop-opacity="0.20"/>
+      <stop offset="100%" stop-color="#090b12" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="#090b12"/>
+  <rect width="1200" height="630" fill="url(#bg-glow)"/>
+  <rect width="1200" height="630" fill="url(#green-glow)"/>
+
+  <!-- Dot grid -->
+  <pattern id="dots" x="0" y="0" width="28" height="28" patternUnits="userSpaceOnUse">
+    <circle cx="1" cy="1" r="1" fill="rgba(100,116,139,0.12)"/>
+  </pattern>
+  <rect width="1200" height="630" fill="url(#dots)"/>
+
+  <!-- Logo mark (rounded square) -->
+  <rect x="80" y="200" width="72" height="72" rx="14" fill="#2563eb"/>
+  <text x="116" y="249" text-anchor="middle" font-family="'Courier New', monospace" font-size="28" font-weight="700" fill="white">ss</text>
+
+  <!-- Wordmark -->
+  <text x="172" y="250" font-family="Arial, Helvetica, sans-serif" font-size="48" font-weight="700" fill="#f1f5f9" letter-spacing="-1">soma-schema</text>
+
+  <!-- Tagline -->
+  <text x="80" y="320" font-family="Arial, Helvetica, sans-serif" font-size="24" fill="#94a3b8" letter-spacing="0.5">Plain-SQL Postgres migrations, AI-native</text>
+
+  <!-- Feature pills -->
+  <!-- Pill 1: AI-native -->
+  <rect x="80" y="380" width="170" height="38" rx="8" fill="rgba(16,185,129,0.12)" stroke="rgba(16,185,129,0.35)" stroke-width="1"/>
+  <text x="165" y="404" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="600" fill="#10b981">AI-native</text>
+
+  <!-- Pill 2: Manifest ordering -->
+  <rect x="264" y="380" width="200" height="38" rx="8" fill="rgba(37,99,235,0.12)" stroke="rgba(37,99,235,0.35)" stroke-width="1"/>
+  <text x="364" y="404" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="600" fill="#60a5fa">Manifest ordering</text>
+
+  <!-- Pill 3: Drift detection -->
+  <rect x="478" y="380" width="190" height="38" rx="8" fill="rgba(244,63,94,0.10)" stroke="rgba(244,63,94,0.30)" stroke-width="1"/>
+  <text x="573" y="404" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="600" fill="#fb7185">Drift detection</text>
+
+  <!-- Pill 4: Advisory lock -->
+  <rect x="682" y="380" width="178" height="38" rx="8" fill="rgba(245,158,11,0.10)" stroke="rgba(245,158,11,0.30)" stroke-width="1"/>
+  <text x="771" y="404" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="600" fill="#fbbf24">Advisory lock</text>
+
+  <!-- Bottom accent line -->
+  <rect x="80" y="460" width="120" height="2" rx="1" fill="#2563eb"/>
+
+  <!-- URL hint -->
+  <text x="80" y="500" font-family="'Courier New', monospace" font-size="16" fill="rgba(148,163,184,0.6)">chaitugsk07.github.io/soma-schema</text>
+</svg>

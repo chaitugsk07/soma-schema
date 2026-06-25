@@ -12,13 +12,14 @@
   --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace;
 
   /* ── Semantic design tokens ── */
-  --forward:          157 72% 42%;   /* emerald — apply / UP */
+  /* a11y: darkened for WCAG AA contrast on white backgrounds */
+  --forward:          157 72% 28%;   /* emerald — apply / UP */
   --forward-subtle:   157 60% 18%;
   --forward-fg:       157 100% 96%;
-  --rollback:         38 92% 52%;    /* amber — down / rollback */
+  --rollback:         38 85% 32%;    /* amber — down / rollback */
   --rollback-subtle:  38 80% 16%;
   --rollback-fg:      38 100% 96%;
-  --drift:            350 80% 55%;   /* rose — error / drift */
+  --drift:            350 75% 38%;   /* rose — error / drift */
   --drift-subtle:     350 65% 16%;
   --drift-fg:         0 100% 97%;
 
@@ -46,6 +47,35 @@
 /* Light theme deep bg (slightly warm paper) */
 :root:not(.dark) {
   --bg-deep: #f8f9fb;
+}
+
+/* ── Skip-to-content link (WCAG 2.4.1) ── */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: auto;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  z-index: -1;
+}
+.skip-link:focus {
+  position: fixed;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 9999;
+  width: auto;
+  height: auto;
+  overflow: visible;
+  padding: 0.5rem 1rem;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
 }
 
 /* ── Global base ── */

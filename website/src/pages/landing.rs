@@ -20,7 +20,7 @@ pub fn LandingPage() -> impl IntoView {
                     // Left: text content
                     <div class="flex-1 min-w-0">
                         <p class="hero-eyebrow">
-                            "Postgres migrations for Rust"
+                            "AI-native \u{00B7} Postgres \u{00B7} Rust"
                         </p>
                         <h1 class="hero-title">
                             "Schema control,\u{a0}"
@@ -28,7 +28,7 @@ pub fn LandingPage() -> impl IntoView {
                             "\u{a0}the drift."
                         </h1>
                         <p class="hero-subtitle mt-5">
-                            "Plain SQL migrations with manifest-defined ordering, full-file drift detection, and run-scoped advisory locking. Library and CLI — zero magic."
+                            "Drop one block into your AGENTS.md and any agent \u{2014} Claude, Cursor, Copilot \u{2014} writes correct migrations: proper UP/DOWN, the manifest entry, FK-safe order, and it never edits a shipped file."
                         </p>
                         <div class="hero-ctas flex flex-wrap gap-3 mt-8">
                             <a
@@ -43,6 +43,33 @@ pub fn LandingPage() -> impl IntoView {
                             <A href=crate::app::app_url("/explorer") attr:class="btn-ghost">
                                 "Explore migrations \u{2192}"
                             </A>
+                        </div>
+                        // Badges
+                        <div class="flex flex-wrap items-center gap-3 mt-4">
+                            <a
+                                href="https://github.com/chaitugsk07/soma-schema"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                aria-label="GitHub stars for soma-schema"
+                            >
+                                <img
+                                    src="https://img.shields.io/github/stars/chaitugsk07/soma-schema?style=flat-square"
+                                    alt="GitHub stars"
+                                    height="20"
+                                />
+                            </a>
+                            <a
+                                href="https://crates.io/crates/soma-schema"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                aria-label="crates.io downloads for soma-schema"
+                            >
+                                <img
+                                    src="https://img.shields.io/crates/d/soma-schema?style=flat-square"
+                                    alt="crates.io downloads"
+                                    height="20"
+                                />
+                            </a>
                         </div>
                     </div>
 

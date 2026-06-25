@@ -94,6 +94,13 @@ fn split_statements(sql: &str) -> Vec<String> {
 }
 
 /// Configuration for the Postgres driver.
+///
+/// # Construction
+///
+/// `PostgresConfig` is intentionally constructable with struct-literal syntax so callers
+/// can write `PostgresConfig { schema: Some("app".into()), ..Default::default() }`.
+/// It is therefore NOT marked `#[non_exhaustive]` — doing so would break that ergonomic.
+/// New fields added in future versions will always have defaults provided via `Default`.
 #[derive(Debug, Clone)]
 pub struct PostgresConfig {
     /// Target schema. `None` means use the connection's search_path default.
@@ -437,5 +444,92 @@ mod tests {
             format!("\"{t}\"")
         };
         assert_eq!(without_schema, "\"00_schema_migrations\"");
+    }
+
+    // --- split_statements tests ---
+
+    #[test]
+    fn split_single_statement() {
+        let stmts = split_statements("CREATE TABLE t (id INT)");
+        assert_eq!(stmts, vec!["CREATE TABLE t (id INT)"]);
+    }
+
+    #[test]
+    fn split_multiple_statements() {
+        let sql = "CREATE TABLE a (id INT);\nCREATE TABLE b (id INT);";
+        let stmts = split_statements(sql);
+        assert_eq!(stmts.len(), 2);
+        assert_eq!(stmts[0], "CREATE TABLE a (id INT)");
+        assert_eq!(stmts[1], "CREATE TABLE b (id INT)");
+    }
+
+    #[test]
+    fn split_single_quoted_string_with_semicolon_stays_one_statement() {
+        // The semicolon inside 'hello;world' must NOT split the statement.
+        let sql = "INSERT INTO t (name) VALUES ('hello;world');";
+        let stmts = split_statements(sql);
+        assert_eq!(stmts.len(), 1);
+        assert!(stmts[0].contains("'hello;world'"));
+    }
+
+    #[test]
+    fn split_single_quoted_escaped_quote() {
+        // '' inside a string is an escaped single quote, not a string close.
+        let sql = "INSERT INTO t (name) VALUES ('it''s fine');";
+        let stmts = split_statements(sql);
+        assert_eq!(stmts.len(), 1);
+        assert!(stmts[0].contains("'it''s fine'"));
+    }
+
+    #[test]
+    fn split_line_comment_semicolon_does_not_split() {
+        // A semicolon in a -- comment must NOT be treated as a statement terminator.
+        let sql = "CREATE TABLE t (id INT); -- trailing; comment\nCREATE TABLE u (id INT);";
+        let stmts = split_statements(sql);
+        // The first real statement ends at the `;` before `--`, the second after the newline.
+        assert_eq!(stmts.len(), 2, "got: {stmts:?}");
+    }
+
+    #[test]
+    fn split_trailing_statement_without_semicolon() {
+        // A final statement without a trailing `;` must still be captured.
+        let sql = "CREATE TABLE a (id INT);\nCREATE TABLE b (id INT)";
+        let stmts = split_statements(sql);
+        assert_eq!(stmts.len(), 2);
+        assert_eq!(stmts[1], "CREATE TABLE b (id INT)");
+    }
+
+    #[test]
+    fn split_empty_input_returns_empty() {
+        assert!(split_statements("").is_empty());
+    }
+
+    #[test]
+    fn split_only_comments_returns_empty() {
+        let sql = "-- just a comment\n-- another comment";
+        assert!(
+            split_statements(sql).is_empty(),
+            "comment-only input should produce no statements"
+        );
+    }
+
+    #[test]
+    fn split_dollar_quote_limitation_documented() {
+        // ponytail: dollar-quoted strings ($$...$$) are NOT parsed; a semicolon inside
+        // $$ ... $$ will incorrectly split the statement. This is the known ceiling —
+        // upgrade path is a real SQL parser (e.g. pg_query crate). The test documents
+        // the ACTUAL current behavior rather than the desired behavior, so CI catches
+        // any accidental change to the status quo.
+        let sql = "CREATE FUNCTION f() RETURNS void LANGUAGE plpgsql AS $$ BEGIN NULL; END $$;";
+        let stmts = split_statements(sql);
+        // With the current implementation, the bare `;` inside $$ splits the statement.
+        // This assertion intentionally documents the limitation — it will need updating
+        // if/when dollar-quote support is added.
+        assert!(
+            stmts.len() > 1,
+            "expected dollar-quote limitation to cause a split (got {} stmt(s)): {:?}",
+            stmts.len(),
+            stmts
+        );
     }
 }

@@ -1,11 +1,12 @@
 use thiserror::Error;
 
+#[non_exhaustive]
 #[derive(Debug, Error)]
 pub enum Error {
     #[error("I/O error: {0}")]
     Io(#[from] std::io::Error),
 
-    #[error("migration-order.yaml not found at the migrations root")]
+    #[error("migration-order.yaml not found at the migrations root — run `soma-schema init <dir>` to scaffold one")]
     ManifestMissing,
 
     #[error("failed to parse migration-order.yaml: {0}")]
@@ -22,13 +23,13 @@ pub enum Error {
     #[error("duplicate entry in manifest: version {version}, file {file}")]
     DuplicateEntry { version: u32, file: String },
 
-    #[error("on-disk migration not listed in manifest: {path}")]
+    #[error("on-disk migration not listed in manifest: {path} — add it to migration-order.yaml, or delete the file")]
     OrphanMigration { path: String },
 
-    #[error("manifest entry not found on disk: version {version}, file {file}")]
+    #[error("manifest entry not found on disk: version {version}, file {file} — create the file, or remove its migration-order.yaml entry")]
     MissingFile { version: u32, file: String },
 
-    #[error("checksum drift for version {version}, file {file}: applied checksum differs from file on disk")]
+    #[error("checksum drift for version {version}, file {file}: applied checksum differs from file on disk — applied migrations are immutable; write a NEW migration instead of editing this one")]
     ChecksumDrift { version: u32, file: String },
 
     #[error("no DOWN section in version {version}, file {file}")]
@@ -56,7 +57,7 @@ pub enum Error {
     /// An applied migration (present in the tracking table) is no longer on disk or in
     /// the manifest. Silently skipping it would bypass the integrity guard — surface it
     /// as an explicit error so operators notice the tampered or deleted migration file.
-    #[error("migration version {version}, file {file} is recorded as applied but is missing from the manifest and disk")]
+    #[error("migration version {version}, file {file} is recorded as applied but is missing from the manifest and disk — the file was deleted after being applied; restore it, or remove its tracking row")]
     AppliedButMissing { version: u32, file: String },
 
     #[error("explorer build failed: {0}")]

@@ -6,6 +6,7 @@ use crate::driver::{AppliedMigration, MigrationDriver};
 use crate::error::{Error, Result};
 
 /// A pending migration (in manifest order, not yet applied).
+#[non_exhaustive]
 #[derive(Debug)]
 pub struct PendingMigration {
     pub version: u32,
@@ -18,6 +19,7 @@ pub struct PendingMigration {
 }
 
 /// The status of all migrations.
+#[non_exhaustive]
 #[derive(Debug)]
 pub struct MigrationStatus {
     pub applied: Vec<AppliedMigration>,
@@ -191,9 +193,12 @@ impl Migrator {
     }
 
     /// Return the current migration status: applied + pending.
+    ///
+    /// Status is a read-only snapshot — it does NOT acquire the advisory lock.
+    /// Acquiring the exclusive lock would cause `soma-schema status` to block while
+    /// an `up`/`down` is running, which is confusing and unnecessary. The reads
+    /// (`applied()`, `ensure_tracking_table`) are safe without serialization.
     pub async fn status(&self, driver: &dyn MigrationDriver) -> Result<MigrationStatus> {
-        let _lock = driver.acquire_lock().await?;
-
         // We need version descriptions from the manifest for the status display.
         let manifest_path = self.root.join("migration-order.yaml");
         let yaml = std::fs::read_to_string(&manifest_path)?;
@@ -263,9 +268,12 @@ impl Migrator {
     /// Scaffold a new migrations root directory.
     ///
     /// Creates:
-    /// - `migration-order.yaml` (with header comments)
-    /// - `00_setup/01_schema.sql` (stub)
-    /// - `01_migrated/1/` (empty, ready for the first migration)
+    /// - `migration-order.yaml` (manifest with the example migration pre-listed)
+    /// - `00_setup/01_schema.sql` (idempotent bootstrap stub)
+    /// - `01_migrated/1/20260101_01_example.sql` (runnable first migration)
+    /// - `02_inprogress/` (staging area for in-flight work)
+    ///
+    /// After scaffolding, `soma-schema up` succeeds with no further edits.
     pub fn scaffold(root: &Path) -> Result<()> {
         std::fs::create_dir_all(root.join("00_setup"))?;
         std::fs::create_dir_all(root.join("01_migrated").join("1"))?;
@@ -279,6 +287,14 @@ impl Migrator {
         let setup_path = root.join("00_setup").join("01_schema.sql");
         if !setup_path.exists() {
             std::fs::write(&setup_path, SETUP_TEMPLATE)?;
+        }
+
+        let example_path = root
+            .join("01_migrated")
+            .join("1")
+            .join("20260101_01_example.sql");
+        if !example_path.exists() {
+            std::fs::write(&example_path, EXAMPLE_MIGRATION)?;
         }
 
         Ok(())
@@ -302,12 +318,11 @@ manifest_version: 1
 versions:
   - version: 1
     description: "Initial schema"
-    migrations: []
-    # Add your migrations here, e.g.:
-    # - file: "20260101_01_init.sql"
-    #   created: "2026-01-01"
-    #   author: "you"
-    #   why: "Create core tables"
+    migrations:
+      - file: "20260101_01_example.sql"
+        created: "2026-01-01"
+        author: "you"
+        why: "Example first migration — rename or replace with your real tables"
 "#;
 
 const SETUP_TEMPLATE: &str = r#"-- 00_setup/01_schema.sql
@@ -329,3 +344,80 @@ CREATE SCHEMA IF NOT EXISTS myapp;
 -- END;
 -- $$;
 "#;
+
+/// A runnable example first migration. Listed in the generated manifest so that
+/// `soma-schema up` succeeds immediately after `soma-schema init <dir>`.
+const EXAMPLE_MIGRATION: &str = r#"-- 01_migrated/1/20260101_01_example.sql
+-- Example migration: rename this file and replace the SQL with your real schema.
+
+CREATE TABLE IF NOT EXISTS example_items (
+    id   BIGSERIAL    PRIMARY KEY,
+    name TEXT         NOT NULL
+);
+
+-- DOWN ==
+DROP TABLE IF EXISTS example_items;
+"#;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn scaffold_manifest_lists_example_file() {
+        let dir = tempfile::tempdir().unwrap();
+        Migrator::scaffold(dir.path()).unwrap();
+
+        let yaml = std::fs::read_to_string(dir.path().join("migration-order.yaml")).unwrap();
+        let manifest = crate::manifest::Manifest::from_yaml(&yaml).unwrap();
+
+        assert_eq!(manifest.versions.len(), 1);
+        let v1 = &manifest.versions[0];
+        assert_eq!(v1.version, 1);
+        assert_eq!(v1.migrations.len(), 1);
+        assert_eq!(v1.migrations[0].file, "20260101_01_example.sql");
+    }
+
+    #[test]
+    fn scaffold_example_file_has_up_and_down() {
+        let dir = tempfile::tempdir().unwrap();
+        Migrator::scaffold(dir.path()).unwrap();
+
+        let sql = std::fs::read_to_string(
+            dir.path()
+                .join("01_migrated")
+                .join("1")
+                .join("20260101_01_example.sql"),
+        )
+        .unwrap();
+
+        // Must have content before the DOWN separator.
+        let down_sep = "-- DOWN ==";
+        let sep_pos = sql.find(down_sep).expect("DOWN separator must be present");
+        let up_part = &sql[..sep_pos];
+        assert!(!up_part.trim().is_empty(), "UP section must not be empty");
+
+        // Must have content after the DOWN separator.
+        let down_part = &sql[sep_pos + down_sep.len()..];
+        assert!(
+            !down_part.trim().is_empty(),
+            "DOWN section must not be empty"
+        );
+    }
+
+    #[test]
+    fn scaffold_is_idempotent() {
+        // Calling scaffold twice should not overwrite existing files.
+        let dir = tempfile::tempdir().unwrap();
+        Migrator::scaffold(dir.path()).unwrap();
+
+        // Overwrite the manifest with sentinel content.
+        let manifest_path = dir.path().join("migration-order.yaml");
+        std::fs::write(&manifest_path, "sentinel").unwrap();
+
+        // Second scaffold must not overwrite.
+        Migrator::scaffold(dir.path()).unwrap();
+        let content = std::fs::read_to_string(&manifest_path).unwrap();
+        assert_eq!(content, "sentinel");
+    }
+}
