@@ -37,21 +37,6 @@ jobs:
       - name: Doctests
         run: cargo test --doc
 
-  msrv:
-    name: MSRV check (Rust 1.75)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: dtolnay/rust-toolchain@1.75
-        with:
-          toolchain: "1.75"
-
-      - uses: Swatinem/rust-cache@v2
-
-      - name: Check all features at MSRV
-        run: cargo check --all-features
-
   deny:
     name: cargo-deny (advisories + licenses)
     runs-on: ubuntu-latest

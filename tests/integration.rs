@@ -1079,29 +1079,29 @@ async fn test_status_reports_applied_and_pending() {
     // Two migrations; we apply only the first.
     let sql1 = with_schema(&migration_create_table("tbl_s1"), &schema);
     let sql2 = with_schema(&migration_create_table("tbl_s2"), &schema);
+    // Start with ONLY the first migration on disk + manifest (no orphan file).
     let f = MigrationsFixture::build(
         Some("SELECT 1;"),
-        &[(
-            1,
-            vec![("20260101_01_a.sql", &sql1), ("20260101_02_b.sql", &sql2)],
-        )],
+        &[(1, vec![("20260101_01_a.sql", &sql1)])],
         None,
     );
 
     let driver = PostgresDriver::new(pool.clone(), pg_config(&schema)).unwrap();
     let migrator = Migrator::from_root(&f.root);
 
-    // Apply only one by writing a manifest that lists just the first.
-    let yaml_one = r#"manifest_version: 1
-versions:
-  - version: 1
-    migrations:
-      - file: "20260101_01_a.sql"
-"#;
-    std::fs::write(f.root.join("migration-order.yaml"), yaml_one).unwrap();
+    // Apply the first migration.
     migrator.up(&driver).await.unwrap();
 
-    // Now expand manifest to include both, but don't run up again.
+    // Add a second migration on disk AND in the manifest, without running up()
+    // again — it should now show up as pending.
+    std::fs::write(
+        f.root
+            .join("01_migrated")
+            .join("1")
+            .join("20260101_02_b.sql"),
+        &sql2,
+    )
+    .unwrap();
     let yaml_both = r#"manifest_version: 1
 versions:
   - version: 1

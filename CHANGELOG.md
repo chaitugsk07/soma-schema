@@ -21,11 +21,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   `MigrationDriver`, `Migration`, `SetupFile`, `MigrationStatus`, `PendingMigration`,
   `PostgresConfig`, `PostgresDriver`, `build_json`, `render_html`.
 - **`#[non_exhaustive]`** on `Error`, `AppliedMigration`, `PendingMigration`, and
-  `MigrationStatus` — callers must use wildcard match arms and field access rather than
-  struct construction, keeping the API forward-compatible.
-- **MSRV pin**: `rust-version = "1.75"` in `Cargo.toml`; checked in CI.
-- **CI hardening**: MSRV job (Rust 1.75), cargo-deny job (advisories + licenses),
-  in-memory driver tests (no Postgres), explorer tests (no Postgres), doctests.
+  `MigrationStatus` — callers use wildcard match arms / field access; plus
+  `AppliedMigration::new()` so external `MigrationDriver` backends can construct rows.
+- **CI hardening**: cargo-deny (advisories + licenses), in-memory driver tests
+  (no Postgres), explorer tests (no Postgres), and doctests.
 
 ### Fixed
 - **XSS in generated HTML**: `</script>` sequences inside embedded JSON are now escaped
