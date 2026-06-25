@@ -13,10 +13,10 @@ This page covers the contract for adopting soma-schema in a soma service (soma-i
 soma-schema = { path = "../soma-schema", default-features = false }
 
 # Pinned to a git tag:
-soma-schema = { git = "https://github.com/chaitugsk07/soma-schema", tag = "v0.1.0", default-features = false }
+soma-schema = { git = "https://github.com/chaitugsk07/soma-schema", tag = "v0.2.0", default-features = false }
 
-# Once published to crates.io:
-soma-schema = { version = "0.1", default-features = false }
+# From crates.io:
+soma-schema = { version = "0.2", default-features = false }
 ```
 
 Use `default-features = false` when embedding the library. The default `cli` feature pulls in `clap`, which you do not need in a service binary.
