@@ -4,7 +4,19 @@ All notable changes to soma-schema are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.2.1] — 2026-06-25
+
+### Changed
+
+- **Docs:** expanded roadmap with tiered database support (SQLite committed, MySQL/MariaDB
+  and CockroachDB planned, SurrealDB/MongoDB/DuckDB exploratory) and a full planned-features
+  list (`--dry-run`, `up --steps N`, `status --json`, `--lock-timeout`, `verify`,
+  `repair`/`baseline`, `new`/`generate`, squash, structured timing).
+- **Docs:** corrected crates.io README install pin to `0.2` (was `0.1` in some places).
+
+No code changes in this release.
+
+## [0.2.0] — 2026-06-01
 
 ### Added
 - **Explorer feature** (`soma-schema explorer`): visual schema ERD + seed-data viewer.
@@ -44,5 +56,6 @@ Initial release.
 - `soma-schema` CLI: `up`, `down --steps N`, `status`, `init`.
 - Throwaway schema isolation in integration tests (`_sdm_test_<uuid>`).
 
-[Unreleased]: https://github.com/chaitugsk07/soma-schema/compare/v0.1.0...HEAD
+[0.2.1]: https://github.com/chaitugsk07/soma-schema/compare/v0.2.0...v0.2.1
+[0.2.0]: https://github.com/chaitugsk07/soma-schema/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/chaitugsk07/soma-schema/releases/tag/v0.1.0

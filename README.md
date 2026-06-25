@@ -283,13 +283,21 @@ The `MigrationDriver` trait in `src/driver.rs` is object-safe and database-agnos
 
 The manifest ordering, full-file checksum detection, run-scoped locking, and atomic apply+track all live above the driver and are reused by every backend.
 
-**Today:** PostgreSQL only.
+### Database support tiers
 
-**Next:** SQLite — the same plain-SQL UP/DOWN format, `BEGIN IMMEDIATE` as the lock primitive. A natural fit for the SQLite-now → Postgres-later pattern.
+| Tier | Backends |
+| --- | --- |
+| **Stable** | PostgreSQL — full advisory lock, atomic apply+track, full-file drift detection |
+| **Committed (next)** | SQLite — same UP/DOWN format, `BEGIN IMMEDIATE` lock; the SQLite-now → Postgres-later path |
+| **Planned** | MySQL / MariaDB (`GET_LOCK`); CockroachDB (validate + document through the Postgres driver) |
+| **Exploratory** | SurrealDB (SurrealQL migrations); MongoDB (idempotent change ops — honest caveat: atomic apply+track is best-effort without multi-doc transactions); DuckDB |
+| **Community-welcome** | Any backend via `MigrationDriver` in `src/driver.rs` — open an issue to coordinate |
 
-**Community-contributed backends** are welcome via the `MigrationDriver` trait. MySQL/MariaDB are the most natural candidates. Open an issue to coordinate.
+### Planned features (database-agnostic)
 
-Full plan, cross-cutting features, and driver contribution guide: [ROADMAP.md](ROADMAP.md).
+`--dry-run` (print SQL without executing) · `up --steps N` · `status --json` for CI · `--lock-timeout` (non-blocking acquire) · `verify` (checksum recheck without applying) · `repair` / `baseline` (adopt an existing database) · `new` / `generate` (scaffold migration + manifest entry) · migration squash · structured timing in `status` output.
+
+Full roadmap, driver contribution guide, and feature details: [ROADMAP.md](ROADMAP.md).
 
 ---
 

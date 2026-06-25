@@ -664,6 +664,164 @@ body {
 .phase-db-list li:not(.phase-live *)::before { content: '·'; color: hsl(var(--muted-foreground)); }
 
 /* ═══════════════════════════════════════════════════════════════
+   ROADMAP SECTION — expanded multi-tier
+═══════════════════════════════════════════════════════════════ */
+.roadmap-lead {
+  font-size: 0.95rem;
+  line-height: 1.65;
+  color: hsl(var(--muted-foreground));
+  max-width: 680px;
+  margin-top: 0.5rem;
+  margin-bottom: 1.5rem;
+  overflow-wrap: break-word;
+}
+
+.roadmap-full-link {
+  color: hsl(var(--primary));
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  white-space: nowrap;
+  transition: opacity 0.15s ease;
+}
+.roadmap-full-link:hover { opacity: 0.75; }
+.roadmap-full-link:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+/* 4-column phase strip — collapses to 2-col then 1-col */
+.phase-strip-4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border: 1px solid hsl(var(--border));
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+@media (max-width: 900px) {
+  .phase-strip-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .phase-strip-4 .phase-item:nth-child(1),
+  .phase-strip-4 .phase-item:nth-child(3) {
+    border-right: 1px solid hsl(var(--border));
+  }
+  .phase-strip-4 .phase-item:nth-child(1),
+  .phase-strip-4 .phase-item:nth-child(2) {
+    border-bottom: 1px solid hsl(var(--border));
+  }
+  /* Reset inherited + .phase-item border-left */
+  .phase-strip-4 .phase-item + .phase-item {
+    border-left: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .phase-strip-4 {
+    grid-template-columns: 1fr;
+  }
+  .phase-strip-4 .phase-item {
+    border-right: none !important;
+    border-bottom: 1px solid hsl(var(--border)) !important;
+  }
+  .phase-strip-4 .phase-item:last-child {
+    border-bottom: none !important;
+  }
+}
+
+/* In the 4-column grid, dividers between cols */
+.phase-strip-4 .phase-item + .phase-item {
+  border-left: 1px solid hsl(var(--border));
+}
+
+/* "Next" tier — subtle amber/rollback tint */
+.phase-item.phase-next {
+  background: hsl(var(--rollback-subtle));
+}
+.phase-item.phase-next .phase-label { color: hsl(var(--rollback)); }
+.phase-item.phase-next .phase-db-list li { color: hsl(var(--rollback-fg) / 0.9); }
+.phase-item.phase-next .phase-db-list li::before {
+  content: '\2192'; /* → */
+  color: hsl(var(--rollback));
+  font-size: 0.75rem;
+}
+
+/* "Exploring" tier — muted primary tint */
+.phase-item.phase-exploring {
+  background: hsl(var(--primary) / 0.04);
+}
+.phase-item.phase-exploring .phase-label { color: hsl(var(--primary) / 0.8); }
+.phase-item.phase-exploring .phase-db-list li::before {
+  content: '\2026'; /* … */
+  color: hsl(var(--muted-foreground));
+  font-size: 0.7rem;
+}
+
+/* Driver note below the strip */
+.roadmap-driver-note {
+  margin-top: 0.85rem;
+  font-size: 0.82rem;
+  color: hsl(var(--muted-foreground));
+  line-height: 1.5;
+}
+
+/* Inline code chip (used in roadmap) */
+.roadmap-code {
+  font-family: var(--font-mono);
+  font-size: 0.78em;
+  background: hsl(var(--muted));
+  color: hsl(var(--foreground));
+  border: 1px solid hsl(var(--border));
+  border-radius: 4px;
+  padding: 0.05em 0.35em;
+  white-space: nowrap;
+}
+
+/* Features-coming card */
+.roadmap-features-card {
+  margin-top: 1.75rem;
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-left: 3px solid hsl(var(--primary) / 0.5);
+  border-radius: 0 10px 10px 0;
+  padding: 1rem 1.25rem;
+  max-width: 680px;
+}
+
+.roadmap-features-label {
+  font-family: var(--font-heading);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: hsl(var(--primary));
+  margin-bottom: 0.6rem;
+}
+
+.roadmap-features-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.3rem 1.5rem;
+}
+
+@media (max-width: 640px) {
+  .roadmap-features-list { grid-template-columns: 1fr; }
+}
+
+.roadmap-features-list li {
+  font-size: 0.82rem;
+  line-height: 1.55;
+  color: hsl(var(--muted-foreground));
+  display: flex;
+  align-items: baseline;
+  gap: 0.25rem;
+  flex-wrap: wrap;
+}
+
+/* ═══════════════════════════════════════════════════════════════
    FOOTER
 ═══════════════════════════════════════════════════════════════ */
 .site-footer {

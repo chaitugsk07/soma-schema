@@ -1,71 +1,84 @@
 +++
 title = "Roadmap"
-description = "Planned backends and cross-cutting features — phases and current status."
+description = "Planned backends and cross-cutting features — tiers and current status."
 weight = 80
 +++
 
-soma-schema is Postgres-only today. The `MigrationDriver` trait is the seam: it defines six async operations (acquire lock, run setup, ensure tracking table, list applied, apply, revert), and each backend fills them in. The manifest ordering, full-file checksum detection, run-scoped locking, and atomic apply+track are all implemented above the driver and require no changes when a new backend lands.
+soma-schema is Postgres-stable today. The `MigrationDriver` trait is the seam: it defines six async operations (acquire lock, run setup, ensure tracking table, list applied, apply, revert), and each backend fills them in. The manifest ordering, full-file checksum detection, run-scoped locking, and atomic apply+track are all implemented above the driver and require no changes when a new backend lands.
 
-The full `ROADMAP.md` is in the [GitHub repository](https://github.com/chaitugsk07/soma-schema/blob/main/ROADMAP.md).
+---
 
-## Backend status
+## Databases
 
-| Backend | Status | Phase |
-|---|---|---|
-| PostgreSQL | Stable | 0 (done) |
-| MySQL / MariaDB | Planned | 1 |
-| SQLite | Planned | 1 |
-| CockroachDB | Planned | 2 |
-| mco-db | Planned | 2 |
-| SurrealDB | Planned | 3 |
-| MongoDB | Planned | 4 |
+### Stable
 
-## Phase 0 — PostgreSQL (done)
+**PostgreSQL** — `PostgresDriver` ships with the crate. Full advisory lock held via RAII guard for the entire `up`/`down` call, atomic apply+track in one transaction, full-file SHA-256 drift detection. This is the ongoing primary focus.
+
+### Committed — next
+
+**SQLite** — the SQLite-now → Postgres-later path. The UP/DOWN file format is identical; no migration files change when you switch backends. Lock primitive: `BEGIN IMMEDIATE` for single-writer safety, or a lock file at the migrations root for multi-process scenarios. The single-connection model simplifies the two-connection pattern `PostgresDriver` uses.
+
+### Planned
+
+**MySQL / MariaDB** — `GET_LOCK` / `RELEASE_LOCK` as the advisory-lock equivalent; sqlx MySQL driver for execution. Tracking table DDL is standard SQL.
+
+**CockroachDB** — speaks the Postgres wire protocol, so it largely works through `PostgresDriver` today. Advisory lock semantics differ and need validation. The goal is zero additional driver code; the work is integration testing and documentation.
+
+### Exploratory — multi-model vision
+
+No timeline commitment on these. Honest about the constraints.
+
+**SurrealDB** — migrations authored in SurrealQL (`.surql` files, UP/DOWN separated by the same `-- DOWN ==` delimiter). New driver required. Locking via a dedicated lock record or a blocking transaction.
+
+**MongoDB** — ordered, idempotent change operations as the migration payload. Locking via a lock document in a dedicated collection. **Known ceiling:** without multi-document transactions in all configurations, atomic apply+track cannot always be guaranteed. The mitigation is idempotent migrations with a pending-marker pattern — explicitly documented, not papered over.
+
+**DuckDB** — analytics workloads that need schema versioning. Single-writer model simplifies locking.
+
+### Community-welcome
+
+Any backend is implementable today by satisfying `MigrationDriver` in [`src/driver.rs`](https://github.com/chaitugsk07/soma-schema/blob/main/src/driver.rs). The manifest ordering, checksum detection, locking, and atomic apply+track are all reused automatically. Open an issue to coordinate before starting.
+
+---
+
+## What's done (PostgreSQL)
 
 - Manifest-defined apply and rollback order via `migration-order.yaml`
 - Full-file SHA-256 checksum drift detection (UP + DOWN together)
-- Run-scoped advisory lock held via RAII guard for the entire `up`/`down` call
+- Run-scoped advisory lock via RAII guard for the entire `up`/`down` call
 - Atomic apply+track: migration SQL and tracking-table row commit in one transaction
+- Visual explorer: self-contained HTML page, no database connection needed
+- `AppliedMigration::new()` — public constructor for external `MigrationDriver` implementations
+- `status` surfacing `drift_errors` without aborting — usable as a CI pre-flight check
 
-## Phase 1 — SQL family
+---
 
-MySQL, MariaDB, and SQLite use the same plain-SQL UP/DOWN file format without changes. The work is implementing `MigrationDriver` for each engine:
+## Features still needed (database-agnostic)
 
-- **MySQL:** `GET_LOCK` / `RELEASE_LOCK` as the advisory-lock equivalent; sqlx MySQL driver for query execution.
-- **SQLite:** `BEGIN IMMEDIATE` as the lock primitive, or a lock file at the migrations root for multi-process scenarios. The single-connection model simplifies the two-connection pattern used by `PostgresDriver`.
+These live above `MigrationDriver` and benefit every backend once done.
 
-The tracking table DDL is standard SQL; both engines support it without modification.
-
-## Phase 2 — Postgres-wire-compatible engines
-
-CockroachDB and mco-db (a Rust engine that speaks the Postgres wire protocol) should work through the existing `PostgresDriver` without a new implementation. Advisory lock semantics differ on CockroachDB — this needs validation and may require a thin adapter, but the goal is zero additional driver code. The work is integration testing and documentation, not a new driver.
-
-## Phase 3 — Multi-model / NewSQL
-
-SurrealDB requires a new driver:
-
-- Migrations authored in SurrealQL (`.surql` files, UP/DOWN separated by the same `-- DOWN ==` delimiter).
-- Locking via a dedicated lock record or a blocking transaction.
-- Tracking table maps to a SurrealDB table; same columns.
-
-## Phase 4 — NoSQL
-
-MongoDB is the first NoSQL target. Migrations are an ordered sequence of change operations. Locking uses a lock document in a dedicated collection.
-
-**Known ceiling:** MongoDB does not have multi-document transactions in all configurations. Apply+track cannot always be made fully atomic. The mitigation is idempotent migrations with a pending-marker pattern. This ceiling is explicitly documented — it is not papered over.
-
-## Cross-cutting features
-
-These are database-agnostic and do not require a new backend:
-
-| Feature | Status |
+| Feature | Notes |
 |---|---|
-| `up --steps N` | Planned (`down --steps N` already exists) |
-| `--dry-run` flag | Planned |
-| `generate` / `new` command | Planned |
-| `verify` command | Planned |
-| `status --json` | Planned |
-| Squash / consolidate | Planned |
+| `--dry-run` | Print the SQL that would run without executing it — `up` and `down` |
+| `up --steps N` | Apply exactly N pending migrations (`down --steps N` already exists) |
+| `status --json` | Machine-readable output for CI; pairs with the existing `drift_errors` field |
+| `--lock-timeout` | Non-blocking advisory-lock acquire with a clear "migration already running" error |
+| `verify` | Re-check all checksums and tracking-table integrity without applying or reverting |
+| `repair` / `baseline` | Adopt an existing database or fix a corrupted tracking table after manual intervention |
+| `new` / `generate` | Scaffold a migration file with the correct naming convention and add the manifest entry |
+| Squash / consolidate | Collapse a range of applied migrations into a single file for long-lived projects |
+| Structured timing in `status` | `execution_ms` is already recorded per migration; surface it in `status` and JSON output |
+
+---
+
+## Driver contract
+
+The full trait is in [`src/driver.rs`](https://github.com/chaitugsk07/soma-schema/blob/main/src/driver.rs). A new driver must provide:
+
+1. **A locking primitive** exclusive for the duration of the call — `GET_LOCK`, a lock document, a blocking transaction, or a file lock.
+2. **Atomic apply+track** where the engine supports transactions. Where true atomicity is not available, the implementation must be idempotent and document the ceiling.
+3. **Opaque payload handling.** The driver receives a `&str` and executes it. It does not parse or validate SQL.
+
+---
 
 ## Non-goals
 

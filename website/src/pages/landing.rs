@@ -431,38 +431,90 @@ pub fn LandingPage() -> impl IntoView {
             // ── ROADMAP ────────────────────────────────────────────────────
             <section class="page-section landing-container ss-anim-4">
                 <span class="section-eyebrow">"Roadmap"</span>
-                <h2 class="section-title">"What's next"</h2>
-                <p class="text-sm mt-1 mb-6" style="color: hsl(var(--muted-foreground))">
-                    "Production-ready for PostgreSQL today. Additional backends are planned — "
+                <h2 class="section-title">"What\u{2019}s next"</h2>
+                <p class="roadmap-lead">
+                    "PostgreSQL is stable and production-ready. The driver architecture makes every other backend a clean implementation problem \u{2014} no core changes needed. "
                     <a
                         href="https://github.com/chaitugsk07/soma-schema/blob/main/ROADMAP.md"
                         target="_blank"
                         rel="noopener noreferrer"
-                        style="color: hsl(var(--primary)); text-decoration: underline; text-underline-offset: 3px;"
+                        class="roadmap-full-link"
                     >
-                        "see the full roadmap \u{2192}"
+                        "Full roadmap \u{2192}"
                     </a>
                 </p>
-                <div class="phase-strip">
-                    <div class="phase-item phase-live">
-                        <p class="phase-label">"Now · Live"</p>
+
+                // ── Backend tiers ──────────────────────────────────────────
+                <div class="phase-strip phase-strip-4" role="list" aria-label="Database backend roadmap">
+                    <div class="phase-item phase-live" role="listitem">
+                        <p class="phase-label">"Now \u{00B7} Stable"</p>
                         <ul class="phase-db-list">
                             <li>"PostgreSQL"</li>
                         </ul>
                     </div>
-                    <div class="phase-item">
+                    <div class="phase-item phase-next" role="listitem">
                         <p class="phase-label">"Next"</p>
                         <ul class="phase-db-list">
                             <li>"SQLite"</li>
                         </ul>
                     </div>
-                    <div class="phase-item">
-                        <p class="phase-label">"Community / driver interface"</p>
+                    <div class="phase-item" role="listitem">
+                        <p class="phase-label">"Planned"</p>
                         <ul class="phase-db-list">
                             <li>"MySQL / MariaDB"</li>
-                            <li>"Any backend via MigrationDriver"</li>
+                            <li>"CockroachDB"</li>
                         </ul>
                     </div>
+                    <div class="phase-item phase-exploring" role="listitem">
+                        <p class="phase-label">"Exploring"</p>
+                        <ul class="phase-db-list">
+                            <li>"SurrealDB"</li>
+                            <li>"MongoDB"</li>
+                            <li>"DuckDB"</li>
+                        </ul>
+                    </div>
+                </div>
+
+                // ── MigrationDriver note ───────────────────────────────────
+                <p class="roadmap-driver-note">
+                    "Any backend via the "
+                    <code class="roadmap-code">"MigrationDriver"</code>
+                    " trait \u{2014} contributions welcome."
+                </p>
+
+                // ── Features coming ────────────────────────────────────────
+                <div class="roadmap-features-card" aria-label="Features coming soon">
+                    <p class="roadmap-features-label">"Features coming"</p>
+                    <ul class="roadmap-features-list" role="list">
+                        <li>
+                            <code class="roadmap-code">"dry-run"</code>
+                            " \u{2014} preview changes without applying"
+                        </li>
+                        <li>
+                            <code class="roadmap-code">"up --steps N"</code>
+                            " \u{2014} apply exactly N migrations"
+                        </li>
+                        <li>
+                            <code class="roadmap-code">"status --json"</code>
+                            " \u{2014} machine-readable output for CI"
+                        </li>
+                        <li>
+                            <code class="roadmap-code">"--lock-timeout"</code>
+                            " \u{2014} fail fast instead of blocking forever"
+                        </li>
+                        <li>
+                            <code class="roadmap-code">"verify"</code>
+                            " \u{2014} re-checksum all applied migrations"
+                        </li>
+                        <li>
+                            <code class="roadmap-code">"repair / baseline"</code>
+                            " \u{2014} recover from manual schema changes"
+                        </li>
+                        <li>
+                            <code class="roadmap-code">"new"</code>
+                            " \u{2014} scaffold a timestamped migration file"
+                        </li>
+                    </ul>
                 </div>
             </section>
 
