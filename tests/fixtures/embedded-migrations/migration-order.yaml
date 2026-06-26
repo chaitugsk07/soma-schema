@@ -1,0 +1,8 @@
+manifest_version: 1
+versions:
+  - version: 1
+    migrations:
+      - file: "20260101_01_init.sql"
+        created: "2026-01-01"
+        author: "test"
+        why: "Fixture migration for embedded tests"

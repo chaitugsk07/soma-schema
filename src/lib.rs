@@ -47,5 +47,9 @@ pub use migration::{Migration, SetupFile};
 pub use migrator::{MigrationStatus, Migrator, PendingMigration};
 pub use postgres::{PostgresConfig, PostgresDriver};
 
+// Re-export so consumers can write `soma_schema::include_dir::include_dir!(...)` without
+// a separate version-matched include_dir dependency.
+pub use include_dir;
+
 #[cfg(feature = "explorer")]
 pub use explorer::{build_json, render_html};

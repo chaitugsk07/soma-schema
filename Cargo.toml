@@ -55,18 +55,19 @@ explorer = ["dep:serde_json", "dep:sqlparser"]
 [dependencies]
 async-trait = "0.1"
 chrono = { version = "0.4", features = ["clock"] }
+include_dir = "0.7"
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", optional = true }
 serde_yaml_ng = "0.10"
 sha2 = "0.10"
 sqlparser = { version = "0.52", optional = true }
 sqlx = { version = "0.8", features = ["runtime-tokio", "tls-rustls", "postgres", "chrono"] }
+tempfile = "3"
 thiserror = "2"
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync"] }
 clap = { version = "4", features = ["derive", "env"], optional = true }
 
 [dev-dependencies]
-tempfile = "3"
 uuid = { version = "1", features = ["v4"] }
 
 [profile.dev]
