@@ -1,6 +1,6 @@
 [package]
 name = "soma-schema"
-version = "0.3.0"
+version = "0.4.0"
 edition = "2021"
 description = "A standalone, reusable SQL migration tool — plain SQL files with UP/DOWN, version tracking, and advisory-lock safety. Postgres first, designed multi-DB."
 license = "Apache-2.0"
