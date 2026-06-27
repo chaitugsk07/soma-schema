@@ -37,7 +37,10 @@ pub struct Migrator {
 
 impl Migrator {
     pub fn from_root(root: impl Into<PathBuf>) -> Self {
-        Self { root: root.into(), _embedded_tmp: None }
+        Self {
+            root: root.into(),
+            _embedded_tmp: None,
+        }
     }
 
     /// Build a Migrator from a compile-time-embedded migrations directory
@@ -52,7 +55,10 @@ impl Migrator {
         let tmp = tempfile::TempDir::new()?;
         dir.extract(tmp.path())?;
         let root = tmp.path().to_path_buf();
-        Ok(Self { root, _embedded_tmp: Some(tmp) })
+        Ok(Self {
+            root,
+            _embedded_tmp: Some(tmp),
+        })
     }
 
     /// Apply all pending migrations in manifest order.
@@ -397,10 +403,9 @@ mod tests {
         let fixture_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("tests/fixtures/embedded-migrations");
 
-        let embedded = Migrator::from_embedded(&FIXTURE_DIR)
-            .expect("from_embedded should succeed");
-        let (embedded_migrations, _) =
-            crate::discovery::discover(&embedded.root).expect("discover via embedded should succeed");
+        let embedded = Migrator::from_embedded(&FIXTURE_DIR).expect("from_embedded should succeed");
+        let (embedded_migrations, _) = crate::discovery::discover(&embedded.root)
+            .expect("discover via embedded should succeed");
 
         let disk = Migrator::from_root(&fixture_path);
         let (disk_migrations, _) =
@@ -426,11 +431,9 @@ mod tests {
     /// at least one migration file, and at least one setup file.
     #[test]
     fn test_from_embedded_unpacks_all_files() {
-        let embedded = Migrator::from_embedded(&FIXTURE_DIR)
-            .expect("from_embedded should succeed");
-        let (migrations, setup_files) =
-            crate::discovery::discover(&embedded.root)
-                .expect("discover() should succeed on unpacked tree");
+        let embedded = Migrator::from_embedded(&FIXTURE_DIR).expect("from_embedded should succeed");
+        let (migrations, setup_files) = crate::discovery::discover(&embedded.root)
+            .expect("discover() should succeed on unpacked tree");
 
         assert_eq!(migrations.len(), 1, "one migration in the fixture");
         assert_eq!(
@@ -438,7 +441,10 @@ mod tests {
             "correct migration filename"
         );
         assert_eq!(setup_files.len(), 1, "one setup file in the fixture");
-        assert_eq!(setup_files[0].name, "01_schema.sql", "correct setup filename");
+        assert_eq!(
+            setup_files[0].name, "01_schema.sql",
+            "correct setup filename"
+        );
     }
 
     #[test]
