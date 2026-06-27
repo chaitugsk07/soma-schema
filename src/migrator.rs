@@ -31,11 +31,28 @@ pub struct MigrationStatus {
 
 pub struct Migrator {
     root: PathBuf,
+    /// Keeps the unpacked temp dir alive for embedded migrators; None for from_root.
+    _embedded_tmp: Option<tempfile::TempDir>,
 }
 
 impl Migrator {
     pub fn from_root(root: impl Into<PathBuf>) -> Self {
-        Self { root: root.into() }
+        Self { root: root.into(), _embedded_tmp: None }
+    }
+
+    /// Build a Migrator from a compile-time-embedded migrations directory
+    /// (via the `include_dir` crate). The embedded tree must follow the same
+    /// layout as an on-disk migrations root: migration-order.yaml, 00_setup/,
+    /// 01_migrated/<v>/, 02_inprogress/<v>/.
+    ///
+    /// The files are unpacked to a temporary directory whose lifetime is tied
+    /// to the returned Migrator, then the existing disk-based discovery runs
+    /// against it. Checksums are byte-identical to the on-disk form.
+    pub fn from_embedded(dir: &include_dir::Dir<'_>) -> Result<Self> {
+        let tmp = tempfile::TempDir::new()?;
+        dir.extract(tmp.path())?;
+        let root = tmp.path().to_path_buf();
+        Ok(Self { root, _embedded_tmp: Some(tmp) })
     }
 
     /// Apply all pending migrations in manifest order.
@@ -362,6 +379,67 @@ DROP TABLE IF EXISTS example_items;
 #[cfg(test)]
 mod tests {
     use super::*;
+    use include_dir::include_dir;
+
+    // Embed the fixture migrations directory. The path is resolved at compile time
+    // relative to the crate root (where Cargo.toml lives), so we use CARGO_MANIFEST_DIR.
+    static FIXTURE_DIR: include_dir::Dir =
+        include_dir!("$CARGO_MANIFEST_DIR/tests/fixtures/embedded-migrations");
+
+    /// Checksums produced by discover() via from_embedded must be byte-identical to
+    /// those produced by from_root on the same fixture on disk.
+    ///
+    /// This proves that the embedded bytes are written out unchanged — a migration
+    /// applied on-disk and then re-verified via from_embedded will not trigger
+    /// a spurious ChecksumDrift error.
+    #[test]
+    fn test_from_embedded_matches_from_root() {
+        let fixture_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("tests/fixtures/embedded-migrations");
+
+        let embedded = Migrator::from_embedded(&FIXTURE_DIR)
+            .expect("from_embedded should succeed");
+        let (embedded_migrations, _) =
+            crate::discovery::discover(&embedded.root).expect("discover via embedded should succeed");
+
+        let disk = Migrator::from_root(&fixture_path);
+        let (disk_migrations, _) =
+            crate::discovery::discover(&disk.root).expect("discover via from_root should succeed");
+
+        assert_eq!(
+            embedded_migrations.len(),
+            disk_migrations.len(),
+            "same number of migrations"
+        );
+        for (emb, dsk) in embedded_migrations.iter().zip(disk_migrations.iter()) {
+            assert_eq!(emb.version, dsk.version, "version matches");
+            assert_eq!(emb.file, dsk.file, "filename matches");
+            assert_eq!(
+                emb.checksum, dsk.checksum,
+                "checksum must be byte-identical for v{} {}",
+                emb.version, emb.file
+            );
+        }
+    }
+
+    /// from_embedded unpacks all files that discover() needs: migration-order.yaml,
+    /// at least one migration file, and at least one setup file.
+    #[test]
+    fn test_from_embedded_unpacks_all_files() {
+        let embedded = Migrator::from_embedded(&FIXTURE_DIR)
+            .expect("from_embedded should succeed");
+        let (migrations, setup_files) =
+            crate::discovery::discover(&embedded.root)
+                .expect("discover() should succeed on unpacked tree");
+
+        assert_eq!(migrations.len(), 1, "one migration in the fixture");
+        assert_eq!(
+            migrations[0].file, "20260101_01_init.sql",
+            "correct migration filename"
+        );
+        assert_eq!(setup_files.len(), 1, "one setup file in the fixture");
+        assert_eq!(setup_files[0].name, "01_schema.sql", "correct setup filename");
+    }
 
     #[test]
     fn scaffold_manifest_lists_example_file() {
